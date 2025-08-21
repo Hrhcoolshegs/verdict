@@ -575,7 +575,7 @@ const CommunityPoll: React.FC = () => {
             <div className="flex justify-center gap-6 sm:gap-8 mt-6 sm:mt-8">
               <button
                 onClick={() => handleVote(movies[currentIndex]?.id, 'not-cinema')}
-                disabled={isSubmittingVerdict || !movies[currentIndex] || !user || userVerdicts[movies[currentIndex]?.id]}
+                disabled={isSubmittingVerdict || !movies[currentIndex] || userVerdicts[movies[currentIndex]?.id] || (showEmailPrompt && showEmailPrompt.movieId === movies[currentIndex]?.id)}
                 className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
                   userVerdicts[movies[currentIndex]?.id] === 'not-cinema' 
                     ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700]' 
@@ -590,7 +590,7 @@ const CommunityPoll: React.FC = () => {
               </button>
               <button
                 onClick={() => handleVote(movies[currentIndex]?.id, 'cinema')}
-                disabled={isSubmittingVerdict || !movies[currentIndex] || !user || userVerdicts[movies[currentIndex]?.id]}
+                disabled={isSubmittingVerdict || !movies[currentIndex] || userVerdicts[movies[currentIndex]?.id] || (showEmailPrompt && showEmailPrompt.movieId === movies[currentIndex]?.id)}
                 className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
                   userVerdicts[movies[currentIndex]?.id] === 'cinema' 
                     ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF] scale-110' 
@@ -731,7 +731,7 @@ const CommunityPoll: React.FC = () => {
                         <div className="flex gap-2 text-xs sm:text-sm">
                           <button
                             onClick={() => handleVoteAction(movie.id, 'cinema')}
-                            disabled={isSubmittingVerdict || !user || userVerdicts[movie.id]}
+                            disabled={isSubmittingVerdict || userVerdicts[movie.id] || (showEmailPrompt && showEmailPrompt.movieId === movie.id)}
                             className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative ${
                               userVerdicts[movie.id] === 'cinema'
                                 ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF]'
@@ -749,7 +749,7 @@ const CommunityPoll: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleVoteAction(movie.id, 'not-cinema')}
-                            disabled={isSubmittingVerdict || !user || userVerdicts[movie.id]}
+                            disabled={isSubmittingVerdict || userVerdicts[movie.id] || (showEmailPrompt && showEmailPrompt.movieId === movie.id)}
                             className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative ${
                               userVerdicts[movie.id] === 'not-cinema'
                                 ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700]'
