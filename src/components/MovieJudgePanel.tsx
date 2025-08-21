@@ -1,0 +1,413 @@
+import React, { useState, useEffect } from 'react';
+import { Search, X, RotateCcw, Shuffle, Share2, CheckCircle, XCircle } from 'lucide-react';
+import { useMovieJudge } from '../hooks/useMovieJudge';
+
+interface MovieJudgePanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) => {
+  const movieJudge = useMovieJudge();
+  const [showVerdictAnimation, setShowVerdictAnimation] = useState(false);
+
+  // Animate verdict when it changes
+  useEffect(() => {
+    if (movieJudge.verdict) {
+      setShowVerdictAnimation(true);
+      const timer = setTimeout(() => setShowVerdictAnimation(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [movieJudge.verdict]);
+
+  const handleSearch = () => {
+    movieJudge.handleSearch();
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const getVerdictMessage = () => {
+    const messages = {
+      cinema: [
+        "A masterpiece of visual storytelling.",
+        "This is what happens when art meets commerce and wins.",
+        "Pure cinematic poetry that transcends boundaries.",
+        "Bold choices that redefine the medium.",
+        "Cinema at its finest."
+      ],
+      'not-cinema': [
+        "Entertaining, but lacks the depth of true Cinema.",
+        "Fun popcorn entertainment, nothing more.",
+        "Technically sound but spiritually vacant.",
+        "More product than art.",
+        "Good movie, but not quite Cinema."
+      ]
+    };
+    
+    const relevantMessages = messages[movieJudge.verdict || 'cinema'];
+    return relevantMessages[Math.floor(Math.random() * relevantMessages.length)];
+  };
+
+  const getMoodRecommendations = () => {
+    const recommendations = {
+      'Friday Night Laughs': [
+        { title: 'The Grand Budapest Hotel', director: 'Wes Anderson', year: 2014 },
+        { title: 'Knives Out', director: 'Rian Johnson', year: 2019 },
+        { title: 'What We Do in the Shadows', director: 'Taika Waititi', year: 2014 }
+      ],
+      'Slow Burn & Feels': [
+        { title: 'Her', director: 'Spike Jonze', year: 2013 },
+        { title: 'Lost in Translation', director: 'Sofia Coppola', year: 2003 },
+        { title: 'The Tree of Life', director: 'Terrence Malick', year: 2011 }
+      ],
+      'Epic Action': [
+        { title: 'Mad Max: Fury Road', director: 'George Miller', year: 2015 },
+        { title: 'Dune', director: 'Denis Villeneuve', year: 2021 },
+        { title: 'The Matrix', director: 'The Wachowskis', year: 1999 }
+      ],
+      'Indie Gems': [
+        { title: 'Moonlight', director: 'Barry Jenkins', year: 2016 },
+        { title: 'The Lighthouse', director: 'Robert Eggers', year: 2019 },
+        { title: 'Parasite', director: 'Bong Joon-ho', year: 2019 }
+      ]
+    };
+    return recommendations[movieJudge.selectedMood as keyof typeof recommendations] || [];
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Desktop Panel */}
+      <div className="fixed top-0 left-0 h-full w-96 bg-[rgba(16,18,24,0.95)] backdrop-blur-xl border-r border-[rgba(0,224,255,0.1)] z-40 transform transition-transform duration-300 ease-out translate-x-0 hidden md:flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 pt-24 border-b border-[rgba(0,224,255,0.1)]">
+          <h2 className="text-xl font-bold font-space-grotesk text-[#00E0FF]">Judge a Movie</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-[rgba(0,224,255,0.1)] rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Search Section */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-[#A6A9B3]">
+              Movie Title
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={movieJudge.searchQuery}
+                onChange={(e) => movieJudge.handleSearchChange(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Enter a movie title..."
+                disabled={movieJudge.isLoading}
+                className="w-full px-4 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.2)] rounded-lg focus:border-[#00E0FF] focus:outline-none transition-colors text-[#F2F4F8] placeholder-[#A6A9B3]"
+              />
+              <button
+                onClick={handleSearch}
+                disabled={movieJudge.isLoading || !movieJudge.searchQuery.trim()}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#A6A9B3] hover:text-[#00E0FF] transition-colors disabled:opacity-50"
+              >
+                {movieJudge.isLoading ? (
+                  <div className="w-5 h-5 border-2 border-[#00E0FF] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Search className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+            {movieJudge.error && (
+              <p className="text-sm text-red-400">{movieJudge.error}</p>
+            )}
+          </div>
+
+          {/* Verdict Display */}
+          {movieJudge.verdict && (
+            <div className={`bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-6 transform transition-all duration-500 ${
+              showVerdictAnimation ? 'scale-105 shadow-2xl' : 'scale-100'
+            }`}>
+              <div className="flex items-center gap-3 mb-3">
+                {movieJudge.verdict === 'cinema' ? (
+                  <CheckCircle className="w-8 h-8 text-[#00E0FF]" />
+                ) : (
+                  <XCircle className="w-8 h-8 text-[#FFD700]" />
+                )}
+                <h3 className={`text-2xl font-bold font-space-grotesk ${
+                  movieJudge.verdict === 'cinema' ? 'text-[#00E0FF]' : 'text-[#FFD700]'
+                }`}>
+                  {movieJudge.verdict === 'cinema' ? 'Yes. It\'s Cinema.' : 'Not Quite Cinema.'}
+                </h3>
+              </div>
+              <p className="text-sm text-[#A6A9B3] leading-relaxed">
+                {getVerdictMessage()}
+              </p>
+            </div>
+          )}
+
+          {/* Manual Verdict Buttons */}
+          {movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && (
+            <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-6">
+              <h4 className="text-lg font-medium font-space-grotesk mb-4 text-[#00E0FF] text-center">
+                Your Verdict on "{movieJudge.searchQuery}"
+              </h4>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => movieJudge.handleVerdictSubmit('not-cinema')}
+                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 hover:scale-105 shadow-lg"
+                >
+                  <XCircle className="w-5 h-5" />
+                  <span className="font-medium">Not Cinema</span>
+                </button>
+                <button
+                  onClick={() => movieJudge.handleVerdictSubmit('cinema')}
+                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 hover:scale-105 shadow-lg"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  <span className="font-medium">Cinema</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Mood Selector */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-[#A6A9B3]">
+              Current Mood
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {movieJudge.moods.map((mood) => (
+                <button
+                  key={mood}
+                  onClick={() => movieJudge.handleMoodChange(mood)}
+                  className={`px-3 py-3 text-sm rounded-lg border transition-all ${
+                    movieJudge.selectedMood === mood
+                      ? 'bg-[#00E0FF] text-[#0B0B10] border-[#00E0FF] shadow-lg'
+                      : 'bg-[rgba(16,18,24,0.6)] text-[#A6A9B3] border-[rgba(0,224,255,0.1)] hover:border-[#00E0FF] hover:text-[#00E0FF]'
+                  }`}
+                >
+                  {mood}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mood Recommendations */}
+          <div className="bg-[rgba(16,18,24,0.4)] border border-[rgba(0,224,255,0.05)] rounded-xl p-4">
+            <h4 className="text-sm font-medium font-space-grotesk mb-3 text-[#00E0FF]">
+              {movieJudge.selectedMood} Picks
+            </h4>
+            <div className="space-y-2">
+              {getMoodRecommendations().map((movie, index) => (
+                <div key={index} className="text-sm text-[#A6A9B3] hover:text-[#F2F4F8] transition-colors cursor-pointer">
+                  <span className="text-[#F2F4F8] font-medium">{movie.title}</span>
+                  <span className="mx-2">•</span>
+                  <span>{movie.director} ({movie.year})</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions Footer */}
+        <div className="flex gap-2 p-6 border-t border-[rgba(0,224,255,0.1)]">
+          <button
+            onClick={movieJudge.resetPanel}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.1)] rounded-lg hover:border-[#00E0FF] transition-colors text-sm"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Reset
+          </button>
+          <button
+            onClick={movieJudge.randomizeSelection}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.1)] rounded-lg hover:border-[#00E0FF] transition-colors text-sm"
+          >
+            <Shuffle className="w-4 h-4" />
+            Random
+          </button>
+          <button
+            onClick={movieJudge.shareVerdict}
+            disabled={!movieJudge.verdict || !movieJudge.searchQuery}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#00E0FF] text-[#0B0B10] rounded-lg hover:bg-[#00C0E0] transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Share2 className="w-4 h-4" />
+            Share
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Sheet */}
+      <div className="fixed inset-x-0 bottom-0 bg-[rgba(16,18,24,0.95)] backdrop-blur-xl border-t border-[rgba(0,224,255,0.1)] z-40 transform transition-transform duration-300 ease-out translate-y-0 md:hidden flex flex-col" style={{ height: '85vh' }}>
+        {/* Mobile Header */}
+        <div className="flex items-center justify-between p-4 border-b border-[rgba(0,224,255,0.1)]">
+          <h2 className="text-lg font-bold font-space-grotesk text-[#00E0FF]">Judge a Movie</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-[rgba(0,224,255,0.1)] rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Mobile Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Search Section */}
+          <div className="space-y-2">
+            <div className="relative">
+              <input
+                type="text"
+                value={movieJudge.searchQuery}
+                onChange={(e) => movieJudge.handleSearchChange(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Enter a movie title..."
+                disabled={movieJudge.isLoading}
+                className="w-full px-4 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.2)] rounded-lg focus:border-[#00E0FF] focus:outline-none transition-colors text-[#F2F4F8] placeholder-[#A6A9B3] text-base"
+              />
+              <button
+                onClick={handleSearch}
+                disabled={movieJudge.isLoading || !movieJudge.searchQuery.trim()}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#A6A9B3] hover:text-[#00E0FF] transition-colors disabled:opacity-50"
+              >
+                {movieJudge.isLoading ? (
+                  <div className="w-5 h-5 border-2 border-[#00E0FF] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Search className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+            {movieJudge.error && (
+              <p className="text-sm text-red-400">{movieJudge.error}</p>
+            )}
+          </div>
+
+          {/* Verdict Display */}
+          {movieJudge.verdict && (
+            <div className={`bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-4 transform transition-all duration-500 ${
+              showVerdictAnimation ? 'scale-105 shadow-2xl' : 'scale-100'
+            }`}>
+              <div className="flex items-center gap-3 mb-2">
+                {movieJudge.verdict === 'cinema' ? (
+                  <CheckCircle className="w-6 h-6 text-[#00E0FF]" />
+                ) : (
+                  <XCircle className="w-6 h-6 text-[#FFD700]" />
+                )}
+                <h3 className={`text-xl font-bold font-space-grotesk ${
+                  movieJudge.verdict === 'cinema' ? 'text-[#00E0FF]' : 'text-[#FFD700]'
+                }`}>
+                  {movieJudge.verdict === 'cinema' ? 'Yes. It\'s Cinema.' : 'Not Quite Cinema.'}
+                </h3>
+              </div>
+              <p className="text-sm text-[#A6A9B3] leading-relaxed">
+                {getVerdictMessage()}
+              </p>
+            </div>
+          )}
+
+          {/* Manual Verdict Buttons */}
+          {movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && (
+            <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-4">
+              <h4 className="text-base font-medium font-space-grotesk mb-3 text-[#00E0FF] text-center">
+                Your Verdict on "{movieJudge.searchQuery}"
+              </h4>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => movieJudge.handleVerdictSubmit('not-cinema')}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg"
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span className="text-sm font-medium">Not Cinema</span>
+                </button>
+                <button
+                  onClick={() => movieJudge.handleVerdictSubmit('cinema')}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  <span className="text-sm font-medium">Cinema</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Mood Selector */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-[#A6A9B3]">
+              Current Mood
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {movieJudge.moods.map((mood) => (
+                <button
+                  key={mood}
+                  onClick={() => movieJudge.handleMoodChange(mood)}
+                  className={`px-3 py-3 text-sm rounded-lg border transition-all ${
+                    movieJudge.selectedMood === mood
+                      ? 'bg-[#00E0FF] text-[#0B0B10] border-[#00E0FF] shadow-lg'
+                      : 'bg-[rgba(16,18,24,0.6)] text-[#A6A9B3] border-[rgba(0,224,255,0.1)] hover:border-[#00E0FF] hover:text-[#00E0FF]'
+                  }`}
+                >
+                  {mood}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mood Recommendations */}
+          <div className="bg-[rgba(16,18,24,0.4)] border border-[rgba(0,224,255,0.05)] rounded-xl p-3">
+            <h4 className="text-sm font-medium font-space-grotesk mb-2 text-[#00E0FF]">
+              {movieJudge.selectedMood} Picks
+            </h4>
+            <div className="space-y-1">
+              {getMoodRecommendations().map((movie, index) => (
+                <div key={index} className="text-sm text-[#A6A9B3] hover:text-[#F2F4F8] transition-colors">
+                  <span className="text-[#F2F4F8] font-medium">{movie.title}</span>
+                  <span className="mx-2">•</span>
+                  <span>{movie.director} ({movie.year})</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Actions Footer */}
+        <div className="flex gap-2 p-4 border-t border-[rgba(0,224,255,0.1)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <button
+            onClick={movieJudge.resetPanel}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.1)] rounded-lg hover:border-[#00E0FF] transition-colors text-sm"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Reset
+          </button>
+          <button
+            onClick={movieJudge.randomizeSelection}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.1)] rounded-lg hover:border-[#00E0FF] transition-colors text-sm"
+          >
+            <Shuffle className="w-4 h-4" />
+            Random
+          </button>
+          <button
+            onClick={movieJudge.shareVerdict}
+            disabled={!movieJudge.verdict || !movieJudge.searchQuery}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#00E0FF] text-[#0B0B10] rounded-lg hover:bg-[#00C0E0] transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Share2 className="w-4 h-4" />
+            Share
+          </button>
+        </div>
+      </div>
+
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-black/50 z-30"
+      />
+    </>
+  );
+};
+
+export default MovieJudgePanel;

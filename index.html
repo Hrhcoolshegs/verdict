@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Is It Cinema? - Judge Movies Like a True Cinephile</title>
+    <meta name="description" content="Not every movie is Cinema. We tell you which ones are. Judge movies and discover what makes true Cinema." />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+      :root {
+        --bg: #0B0B10;
+        --text: #F2F4F8;
+        --muted: #A6A9B3;
+        --accent: #00E0FF;
+        --accent-alt: #00BFFF;
+      }
+      
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--bg);
+        color: var(--text);
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      h1, h2, h3, h4, h5, h6 {
+        font-family: 'Bebas Neue', sans-serif;
+      }
+      
+      /* Prevent zoom on input focus on iOS */
+      input[type="text"], input[type="search"], textarea {
+        font-size: 16px;
+      }
+      
+      /* Safe area support for devices with notches */
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      
+      ::-webkit-scrollbar-track {
+        background: rgba(16,18,24,0.4);
+      }
+      
+      ::-webkit-scrollbar-thumb {
+        background: rgba(0,224,255,0.3);
+        border-radius: 4px;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(0,224,255,0.5);
+      }
+      
+      /* Focus styles for accessibility */
+      *:focus {
+        outline: 2px solid rgba(0, 224, 255, 0.5);
+        outline-offset: 2px;
+      }
+      
+      button:focus,
+      input:focus {
+        outline: 2px solid rgba(0, 224, 255, 0.8);
+        outline-offset: 2px;
+      }
+      
+      /* Improve touch targets */
+      @media (max-width: 768px) {
+        button, a, input, select, textarea {
+          min-height: 44px;
+          min-width: 44px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
