@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, X, Trophy, Medal, Award, TrendingUp, TrendingDown, Users, Star } from 'lucide-react';
-import { fetchMovies, calculateCinemaPercentage, isMovieCinema, submitMovieVerdict, type Movie } from '../data/movies';
+import { fetchMovies, calculateCinemaPercentage, isMovieCinema, submitMovieVerdict, hasUserAlreadyJudged, getUserVerdict, type Movie } from '../data/movies';
+import { supabase } from '../lib/supabase';
+import type { User } from '@supabase/supabase-js';
 
 // Lazy loading image component
 const LazyImage: React.FC<{ src: string; alt: string; className: string }> = ({ src, alt, className }) => {
@@ -57,6 +59,8 @@ const CommunityPoll: React.FC = () => {
   const [isSubmittingVerdict, setIsSubmittingVerdict] = useState(false);
   const [verdictFeedback, setVerdictFeedback] = useState<{ movieId: number; message: string } | null>(null);
   const moviesPerPage = 12;
+  const [user, setUser] = useState<User | null>(null);
+  const [userVerdicts, setUserVerdicts] = useState<Record<number, 'cinema' | 'not-cinema'>>({});
 
   // Load movies on component mount
   React.useEffect(() => {
@@ -75,6 +79,34 @@ const CommunityPoll: React.FC = () => {
     loadMovies();
   }, []);
 
+  // Listen for auth state changes
+  React.useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user || null);
+      
+      if (session?.user?.email && movies.length > 0) {
+        // Load user's verdicts for all movies
+        const verdicts: Record<number, 'cinema' | 'not-cinema'> = {};
+        for (const movie of movies) {
+          const verdict = await getUserVerdict(session.user.email, movie.id);
+          if (verdict) {
+            verdicts[movie.id] = verdict;
+          }
+        }
+        setUserVerdicts(verdicts);
+      } else {
+        setUserVerdicts({});
+      }
+    });
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [movies]);
+
   // Clear verdict feedback after 3 seconds
   React.useEffect(() => {
     if (verdictFeedback) {
@@ -88,9 +120,26 @@ const CommunityPoll: React.FC = () => {
   const handleVote = async (movieId: number, verdict: 'cinema' | 'not-cinema') => {
     if (isSubmittingVerdict) return;
 
+    if (!user?.email) {
+      setVerdictFeedback({
+        movieId,
+        message: 'Please verify your email first to submit verdicts.'
+      });
+      return;
+    }
+
+    // Check if user has already judged this movie
+    if (userVerdicts[movieId]) {
+      setVerdictFeedback({
+        movieId,
+        message: `You already judged this as ${userVerdicts[movieId] === 'cinema' ? 'Cinema' : 'Not Cinema'}.`
+      });
+      return;
+    }
+
     try {
       setIsSubmittingVerdict(true);
-      const updatedMovie = await submitMovieVerdict(movieId, verdict);
+      const updatedMovie = await submitMovieVerdict(movieId, verdict, user.email);
       
       if (updatedMovie) {
         // Update the movie in the local state
@@ -99,6 +148,12 @@ const CommunityPoll: React.FC = () => {
             movie.id === movieId ? updatedMovie : movie
           )
         );
+
+        // Update user verdicts
+        setUserVerdicts(prev => ({
+          ...prev,
+          [movieId]: verdict
+        }));
 
         // Show feedback
         const verdictText = verdict === 'cinema' ? 'Cinema' : 'Not Cinema';
@@ -142,9 +197,26 @@ const CommunityPoll: React.FC = () => {
   const handleVoteAction = async (movieId: number, verdictType: 'cinema' | 'not-cinema') => {
     if (isSubmittingVerdict) return;
 
+    if (!user?.email) {
+      setVerdictFeedback({
+        movieId,
+        message: 'Please verify your email first to submit verdicts.'
+      });
+      return;
+    }
+
+    // Check if user has already judged this movie
+    if (userVerdicts[movieId]) {
+      setVerdictFeedback({
+        movieId,
+        message: `You already judged this as ${userVerdicts[movieId] === 'cinema' ? 'Cinema' : 'Not Cinema'}.`
+      });
+      return;
+    }
+
     try {
       setIsSubmittingVerdict(true);
-      const updatedMovie = await submitMovieVerdict(movieId, verdictType);
+      const updatedMovie = await submitMovieVerdict(movieId, verdictType, user.email);
       
       if (updatedMovie) {
         // Update the movie in the local state
@@ -153,6 +225,12 @@ const CommunityPoll: React.FC = () => {
             movie.id === movieId ? updatedMovie : movie
           )
         );
+
+        // Update user verdicts
+        setUserVerdicts(prev => ({
+          ...prev,
+          [movieId]: verdictType
+        }));
 
         // Show feedback
         const verdictText = verdictType === 'cinema' ? 'Cinema' : 'Not Cinema';
@@ -318,8 +396,12 @@ const CommunityPoll: React.FC = () => {
             <div className="flex justify-center gap-6 sm:gap-8 mt-6 sm:mt-8">
               <button
                 onClick={() => handleVote(movies[currentIndex]?.id, 'not-cinema')}
-                disabled={isSubmittingVerdict || !movies[currentIndex]}
-                className="w-12 h-12 sm:w-16 sm:h-16 bg-[#00BFFF] hover:bg-[#0099CC] text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                disabled={isSubmittingVerdict || !movies[currentIndex] || !user || userVerdicts[movies[currentIndex]?.id]}
+                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
+                  userVerdicts[movies[currentIndex]?.id] === 'not-cinema' 
+                    ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700]' 
+                    : 'bg-[#00BFFF] hover:bg-[#0099CC] text-white hover:scale-110 focus:ring-[#00BFFF] disabled:opacity-50'
+                }`}
               >
                 {isSubmittingVerdict ? (
                   <div className="w-4 h-4 sm:w-6 sm:h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -329,8 +411,12 @@ const CommunityPoll: React.FC = () => {
               </button>
               <button
                 onClick={() => handleVote(movies[currentIndex]?.id, 'cinema')}
-                disabled={isSubmittingVerdict || !movies[currentIndex]}
-                className="w-12 h-12 sm:w-16 sm:h-16 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg focus:outline-none focus:ring-2 focus:ring-[#00E0FF] focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                disabled={isSubmittingVerdict || !movies[currentIndex] || !user || userVerdicts[movies[currentIndex]?.id]}
+                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
+                  userVerdicts[movies[currentIndex]?.id] === 'cinema' 
+                    ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF] scale-110' 
+                    : 'bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] hover:scale-110 focus:ring-[#00E0FF] disabled:opacity-50'
+                }`}
               >
                 {isSubmittingVerdict ? (
                   <div className="w-4 h-4 sm:w-6 sm:h-6 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
@@ -339,6 +425,15 @@ const CommunityPoll: React.FC = () => {
                 )}
               </button>
             </div>
+
+            {/* User verdict status */}
+            {user && movies[currentIndex] && userVerdicts[movies[currentIndex].id] && (
+              <div className="text-center mt-2">
+                <p className="text-sm text-[#00E0FF] font-medium">
+                  Your verdict: {userVerdicts[movies[currentIndex].id] === 'cinema' ? 'Cinema' : 'Not Cinema'}
+                </p>
+              </div>
+            )}
 
             {/* Verdict Feedback */}
             {verdictFeedback && verdictFeedback.movieId === movies[currentIndex]?.id && (
@@ -352,12 +447,17 @@ const CommunityPoll: React.FC = () => {
             <div className="text-center mt-4 space-x-4 text-sm sm:text-base">
               <span className="text-[#FFD700]">✗ Not Cinema</span>
               <span className="text-[#00E0FF]">✓ Cinema</span>
+              {!user && (
+                <div className="mt-2">
+                  <p className="text-xs text-[#A6A9B3]">Verify your email to submit verdicts</p>
+                </div>
+              )}
             </div>
             
             {/* Mobile Swipe Hint */}
-            <div className="text-center mt-2 sm:hidden">
+            <div className="text-center mt-2 sm:hidden"> 
               <p className="text-xs text-[#A6A9B3]">
-                Swipe left for ✗ • Swipe right for ✓
+                {user ? 'Swipe left for ✗ • Swipe right for ✓' : 'Verify email to swipe and vote'}
               </p>
             </div>
           </div>
@@ -457,8 +557,12 @@ const CommunityPoll: React.FC = () => {
                         <div className="flex gap-2 text-xs sm:text-sm">
                           <button
                             onClick={() => handleVoteAction(movie.id, 'cinema')}
-                            disabled={isSubmittingVerdict}
-                            className="flex-1 py-2 px-2 sm:px-3 bg-[rgba(0,224,255,0.1)] hover:bg-[rgba(0,224,255,0.2)] text-[#00E0FF] rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#00E0FF] focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative"
+                            disabled={isSubmittingVerdict || !user || userVerdicts[movie.id]}
+                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative ${
+                              userVerdicts[movie.id] === 'cinema'
+                                ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF]'
+                                : 'bg-[rgba(0,224,255,0.1)] hover:bg-[rgba(0,224,255,0.2)] text-[#00E0FF] focus:ring-[#00E0FF]'
+                            }`}
                           >
                             {isSubmittingVerdict && verdictFeedback?.movieId === movie.id ? (
                               <div className="flex items-center justify-center">
@@ -466,13 +570,17 @@ const CommunityPoll: React.FC = () => {
                                 Cinema
                               </div>
                             ) : (
-                              'Cinema'
+                              userVerdicts[movie.id] === 'cinema' ? '✓ Cinema' : 'Cinema'
                             )}
                           </button>
                           <button
                             onClick={() => handleVoteAction(movie.id, 'not-cinema')}
-                            disabled={isSubmittingVerdict}
-                            className="flex-1 py-2 px-2 sm:px-3 bg-[rgba(255,215,0,0.1)] hover:bg-[rgba(255,215,0,0.2)] text-[#FFD700] rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative"
+                            disabled={isSubmittingVerdict || !user || userVerdicts[movie.id]}
+                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative ${
+                              userVerdicts[movie.id] === 'not-cinema'
+                                ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700]'
+                                : 'bg-[rgba(255,215,0,0.1)] hover:bg-[rgba(255,215,0,0.2)] text-[#FFD700] focus:ring-[#FFD700]'
+                            }`}
                           >
                             {isSubmittingVerdict && verdictFeedback?.movieId === movie.id ? (
                               <div className="flex items-center justify-center">
@@ -480,7 +588,7 @@ const CommunityPoll: React.FC = () => {
                                 Not Cinema
                               </div>
                             ) : (
-                              'Not Cinema'
+                              userVerdicts[movie.id] === 'not-cinema' ? '✗ Not Cinema' : 'Not Cinema'
                             )}
                           </button>
                         </div>

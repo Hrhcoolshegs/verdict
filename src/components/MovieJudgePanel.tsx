@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, RotateCcw, Shuffle, Share2, CheckCircle, XCircle } from 'lucide-react';
+import { Search, X, RotateCcw, Shuffle, Share2, CheckCircle, XCircle, Mail, LogOut } from 'lucide-react';
 import { useMovieJudge } from '../hooks/useMovieJudge';
 
 interface MovieJudgePanelProps {
@@ -97,6 +97,75 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* User Authentication Section */}
+          {!movieJudge.user ? (
+            <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-6">
+              <h4 className="text-lg font-medium font-space-grotesk mb-4 text-[#00E0FF]">
+                Verify Your Email to Judge
+              </h4>
+              <p className="text-sm text-[#A6A9B3] mb-4">
+                Enter your email to receive a verification link. This prevents duplicate verdicts and keeps scoring fair.
+              </p>
+              
+              {!movieJudge.isEmailVerificationSent ? (
+                <div className="space-y-3">
+                  <input
+                    type="email"
+                    value={movieJudge.userEmail}
+                    onChange={(e) => movieJudge.handleEmailChange(e.target.value)}
+                    placeholder="your@email.com"
+                    className="w-full px-4 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.2)] rounded-lg focus:border-[#00E0FF] focus:outline-none transition-colors text-[#F2F4F8] placeholder-[#A6A9B3]"
+                  />
+                  <button
+                    onClick={movieJudge.sendVerificationEmail}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-[#00E0FF] text-[#0B0B10] rounded-lg hover:bg-[#00C0E0] transition-colors font-medium"
+                  >
+                    <Mail className="w-4 h-4" />
+                    Send Verification Link
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-[rgba(0,224,255,0.1)] rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Mail className="w-6 h-6 text-[#00E0FF]" />
+                  </div>
+                  <p className="text-sm text-[#00E0FF] mb-2">Check your email!</p>
+                  <p className="text-xs text-[#A6A9B3]">
+                    We sent a verification link to <strong>{movieJudge.userEmail}</strong>. 
+                    Click the link to start judging movies.
+                  </p>
+                  <button
+                    onClick={() => movieJudge.sendVerificationEmail()}
+                    className="text-xs text-[#00E0FF] hover:underline mt-2"
+                  >
+                    Resend email
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-[rgba(0,224,255,0.1)] rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4 text-[#00E0FF]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#F2F4F8]">Verified</p>
+                    <p className="text-xs text-[#A6A9B3]">{movieJudge.user.email}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={movieJudge.signOut}
+                  className="p-2 hover:bg-[rgba(0,224,255,0.1)] rounded-lg transition-colors"
+                  title="Sign out"
+                >
+                  <LogOut className="w-4 h-4 text-[#A6A9B3]" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Search Section */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-[#A6A9B3]">
@@ -109,7 +178,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 onChange={(e) => movieJudge.handleSearchChange(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Enter a movie title..."
-                disabled={movieJudge.isLoading}
+                disabled={movieJudge.isLoading || !movieJudge.user}
                 className="w-full px-4 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.2)] rounded-lg focus:border-[#00E0FF] focus:outline-none transition-colors text-[#F2F4F8] placeholder-[#A6A9B3]"
               />
               <button
@@ -128,6 +197,20 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               <p className="text-sm text-red-400">{movieJudge.error}</p>
             )}
           </div>
+
+          {/* User's Previous Verdict Display */}
+          {movieJudge.user && movieJudge.hasAlreadyJudged && movieJudge.userVerdict && (
+            <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                {movieJudge.userVerdict === 'cinema' ? (
+                  <CheckCircle className="w-6 h-6 text-[#00E0FF]" />
+                ) : (
+                  <XCircle className="w-6 h-6 text-[#FFD700]" />
+                )}
+                <p className="text-sm text-[#A6A9B3]">Your verdict: <span className={`font-medium ${movieJudge.userVerdict === 'cinema' ? 'text-[#00E0FF]' : 'text-[#FFD700]'}`}>{movieJudge.userVerdict === 'cinema' ? 'Cinema' : 'Not Cinema'}</span></p>
+              </div>
+            </div>
+          )}
 
           {/* Verdict Display */}
           {movieJudge.verdict && (
@@ -153,7 +236,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
           )}
 
           {/* Manual Verdict Buttons */}
-          {movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && !movieJudge.currentMovie && (
+          {movieJudge.user && movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && !movieJudge.currentMovie && !movieJudge.hasAlreadyJudged && (
             <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-6">
               <h4 className="text-lg font-medium font-space-grotesk mb-4 text-[#00E0FF] text-center">
                 Your Verdict on "{movieJudge.searchQuery}"
@@ -161,7 +244,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               <div className="flex gap-3">
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('not-cinema')}
-                  disabled={movieJudge.isSubmittingVerdict}
+                  disabled={movieJudge.isSubmittingVerdict || movieJudge.hasAlreadyJudged}
                   className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   {movieJudge.isSubmittingVerdict ? (
@@ -178,7 +261,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 </button>
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('cinema')}
-                  disabled={movieJudge.isSubmittingVerdict}
+                  disabled={movieJudge.isSubmittingVerdict || movieJudge.hasAlreadyJudged}
                   className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   {movieJudge.isSubmittingVerdict ? (
@@ -197,6 +280,13 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
             </div>
           )}
 
+          {/* Database Movie Verdict Buttons */}
+          {movieJudge.user && movieJudge.currentMovie && !movieJudge.hasAlreadyJudged && (
+            <div className="text-center">
+              <p className="text-sm text-[#A6A9B3] mb-4">Cast your verdict for this movie:</p>
+            </div>
+          )}
+
           {/* Mood Selector */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-[#A6A9B3]">
@@ -206,6 +296,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               {movieJudge.moods.map((mood) => (
                 <button
                   key={mood}
+                  disabled={!movieJudge.user}
                   onClick={() => movieJudge.handleMoodChange(mood)}
                   className={`px-3 py-3 text-sm rounded-lg border transition-all ${
                     movieJudge.selectedMood === mood
@@ -248,6 +339,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
           <button
             onClick={movieJudge.randomizeSelection}
             className="flex-1 flex items-center justify-center gap-2 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.1)] rounded-lg hover:border-[#00E0FF] transition-colors text-sm"
+            disabled={!movieJudge.user}
           >
             <Shuffle className="w-4 h-4" />
             Random
@@ -255,7 +347,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
           <button
             onClick={movieJudge.shareVerdict}
             disabled={!movieJudge.verdict || !movieJudge.searchQuery}
-            className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#00E0FF] text-[#0B0B10] rounded-lg hover:bg-[#00C0E0] transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#00E0FF] text-[#0B0B10] rounded-lg hover:bg-[#00C0E0] transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#00E0FF]"
           >
             <Share2 className="w-4 h-4" />
             Share
@@ -278,6 +370,63 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
 
         {/* Mobile Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Mobile User Authentication Section */}
+          {!movieJudge.user ? (
+            <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-4">
+              <h4 className="text-base font-medium font-space-grotesk mb-3 text-[#00E0FF]">
+                Verify Your Email to Judge
+              </h4>
+              <p className="text-sm text-[#A6A9B3] mb-3">
+                Enter your email to receive a verification link.
+              </p>
+              
+              {!movieJudge.isEmailVerificationSent ? (
+                <div className="space-y-2">
+                  <input
+                    type="email"
+                    value={movieJudge.userEmail}
+                    onChange={(e) => movieJudge.handleEmailChange(e.target.value)}
+                    placeholder="your@email.com"
+                    className="w-full px-4 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.2)] rounded-lg focus:border-[#00E0FF] focus:outline-none transition-colors text-[#F2F4F8] placeholder-[#A6A9B3] text-base"
+                  />
+                  <button
+                    onClick={movieJudge.sendVerificationEmail}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-[#00E0FF] text-[#0B0B10] rounded-lg hover:bg-[#00C0E0] transition-colors font-medium"
+                  >
+                    <Mail className="w-4 h-4" />
+                    Send Verification Link
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <div className="w-10 h-10 bg-[rgba(0,224,255,0.1)] rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Mail className="w-5 h-5 text-[#00E0FF]" />
+                  </div>
+                  <p className="text-sm text-[#00E0FF] mb-1">Check your email!</p>
+                  <p className="text-xs text-[#A6A9B3] mb-2">
+                    Verification link sent to <strong>{movieJudge.userEmail}</strong>
+                  </p>
+                  <button
+                    onClick={() => movieJudge.sendVerificationEmail()}
+                    className="text-xs text-[#00E0FF] hover:underline"
+                  >
+                    Resend email
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-[#00E0FF]" />
+                <span className="text-sm text-[#F2F4F8]">{movieJudge.user.email}</span>
+              </div>
+              <button onClick={movieJudge.signOut} className="p-1 hover:bg-[rgba(0,224,255,0.1)] rounded">
+                <LogOut className="w-4 h-4 text-[#A6A9B3]" />
+              </button>
+            </div>
+          )}
+
           {/* Search Section */}
           <div className="space-y-2">
             <div className="relative">
@@ -287,7 +436,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 onChange={(e) => movieJudge.handleSearchChange(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Enter a movie title..."
-                disabled={movieJudge.isLoading}
+                disabled={movieJudge.isLoading || !movieJudge.user}
                 className="w-full px-4 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.2)] rounded-lg focus:border-[#00E0FF] focus:outline-none transition-colors text-[#F2F4F8] placeholder-[#A6A9B3] text-base"
               />
               <button
@@ -306,6 +455,20 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               <p className="text-sm text-red-400">{movieJudge.error}</p>
             )}
           </div>
+
+          {/* Mobile User's Previous Verdict Display */}
+          {movieJudge.user && movieJudge.hasAlreadyJudged && movieJudge.userVerdict && (
+            <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-3">
+              <div className="flex items-center gap-2">
+                {movieJudge.userVerdict === 'cinema' ? (
+                  <CheckCircle className="w-5 h-5 text-[#00E0FF]" />
+                ) : (
+                  <XCircle className="w-5 h-5 text-[#FFD700]" />
+                )}
+                <p className="text-sm text-[#A6A9B3]">Your verdict: <span className={`font-medium ${movieJudge.userVerdict === 'cinema' ? 'text-[#00E0FF]' : 'text-[#FFD700]'}`}>{movieJudge.userVerdict === 'cinema' ? 'Cinema' : 'Not Cinema'}</span></p>
+              </div>
+            </div>
+          )}
 
           {/* Verdict Display */}
           {movieJudge.verdict && (
@@ -331,7 +494,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
           )}
 
           {/* Manual Verdict Buttons */}
-          {movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && !movieJudge.currentMovie && (
+          {movieJudge.user && movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && !movieJudge.currentMovie && !movieJudge.hasAlreadyJudged && (
             <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-4">
               <h4 className="text-base font-medium font-space-grotesk mb-3 text-[#00E0FF] text-center">
                 Your Verdict on "{movieJudge.searchQuery}"
@@ -339,7 +502,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               <div className="flex gap-2">
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('not-cinema')}
-                  disabled={movieJudge.isSubmittingVerdict}
+                  disabled={movieJudge.isSubmittingVerdict || movieJudge.hasAlreadyJudged}
                   className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {movieJudge.isSubmittingVerdict ? (
@@ -356,7 +519,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 </button>
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('cinema')}
-                  disabled={movieJudge.isSubmittingVerdict}
+                  disabled={movieJudge.isSubmittingVerdict || movieJudge.hasAlreadyJudged}
                   className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {movieJudge.isSubmittingVerdict ? (
@@ -384,6 +547,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               {movieJudge.moods.map((mood) => (
                 <button
                   key={mood}
+                  disabled={!movieJudge.user}
                   onClick={() => movieJudge.handleMoodChange(mood)}
                   className={`px-3 py-3 text-sm rounded-lg border transition-all ${
                     movieJudge.selectedMood === mood
@@ -426,6 +590,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
           <button
             onClick={movieJudge.randomizeSelection}
             className="flex-1 flex items-center justify-center gap-2 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.1)] rounded-lg hover:border-[#00E0FF] transition-colors text-sm"
+            disabled={!movieJudge.user}
           >
             <Shuffle className="w-4 h-4" />
             Random
