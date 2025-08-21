@@ -31,7 +31,7 @@ function App() {
           className="block hover:scale-105 transition-transform duration-200"
         >
           <img
-            src="https://raw.githubusercontent.com/kickiniteasy/bolt-hackathon-badge/main/assets/white-circle-badge.svg"
+            src="/white_circle_360x360 (1).png"
             alt="Made with Bolt.new"
             className="w-20 h-auto sm:w-24"
           />
