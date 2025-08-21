@@ -22,6 +22,22 @@ function App() {
         </div>
       </div>
       
+      {/* Made with Bolt Badge */}
+      <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-50">
+        <a
+          href="https://bolt.new"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block hover:scale-105 transition-transform duration-200"
+        >
+          <img
+            src="https://raw.githubusercontent.com/kickiniteasy/bolt-hackathon-badge/main/assets/white-circle-badge.svg"
+            alt="Made with Bolt.new"
+            className="w-20 h-auto sm:w-24"
+          />
+        </a>
+      </div>
+      
       <div className="relative z-10">
         <Hero onOpenPanel={() => setIsPanelOpen(true)} />
         
