@@ -67,21 +67,6 @@ const Footer: React.FC = () => {
         <p className="text-xs text-[#A6A9B3] font-space-grotesk">
           © 2025 Is It Cinema? • Made with passion for the art of film
         </p>
-        
-        <div className="mt-6 flex justify-center">
-          <a
-            href="https://bolt.new"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="opacity-60 hover:opacity-100 transition-opacity duration-300"
-          >
-            <img
-              src="https://raw.githubusercontent.com/kickiniteasy/bolt-hackathon-badge/main/assets/white-circle-badge.svg"
-              alt="Made with Bolt.new"
-              className="w-20 h-auto"
-            />
-          </a>
-        </div>
       </div>
     </footer>
   );
