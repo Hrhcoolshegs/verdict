@@ -430,13 +430,13 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
           {!movieJudge.user && movieJudge.showEmailPrompt && (
             <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-4">
               <h4 className="text-base font-medium font-space-grotesk mb-3 text-[#00E0FF]">
-                Enter Your Email to Count Your Vote
+                Enter Your Email to Vote
               </h4>
               <p className="text-sm text-[#A6A9B3] mb-3">
-                Your vote will only count after email verification.
+                Your vote will be recorded immediately.
               </p>
               
-              {!movieJudge.isEmailVerificationSent ? (
+              {!movieJudge.isEmailVerificationSent && !movieJudge.isSubmittingVerdict ? (
                 <div className="space-y-2">
                   <input
                     type="email"
@@ -447,27 +447,41 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                   />
                   <button
                     onClick={movieJudge.sendVerificationEmail}
+                    disabled={movieJudge.isSubmittingVerdict}
                     className="w-full flex items-center justify-center gap-2 py-3 bg-[#00E0FF] text-[#0B0B10] rounded-lg hover:bg-[#00C0E0] transition-colors font-medium"
                   >
                     <Mail className="w-4 h-4" />
-                    Send Verification Link
+                    {movieJudge.isSubmittingVerdict ? 'Recording Vote...' : 'Submit Vote'}
                   </button>
                 </div>
-              ) : (
+              ) : movieJudge.isSubmittingVerdict ? (
+                <div className="text-center">
+                  <div className="w-10 h-10 bg-[rgba(0,224,255,0.1)] rounded-full flex items-center justify-center mx-auto mb-2">
+                    <div className="w-5 h-5 border-2 border-[#00E0FF] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  <p className="text-sm text-[#00E0FF] mb-1">Recording your vote...</p>
+                </div>
+              ) : movieJudge.isEmailVerificationSent ? (
                 <div className="text-center">
                   <div className="w-10 h-10 bg-[rgba(0,224,255,0.1)] rounded-full flex items-center justify-center mx-auto mb-2">
                     <Mail className="w-5 h-5 text-[#00E0FF]" />
                   </div>
-                  <p className="text-sm text-[#00E0FF] mb-1">Check your email to complete your vote!</p>
+                  <p className="text-sm text-[#00E0FF] mb-1">Vote recorded!</p>
                   <p className="text-xs text-[#A6A9B3] mb-2">
-                    Verification link sent to <strong>{movieJudge.userEmail}</strong>
+                    Verification link sent to <strong>{movieJudge.userEmail}</strong> for future votes.
                   </p>
                   <button
-                    onClick={() => movieJudge.sendVerificationEmail()}
-                    className="text-xs text-[#00E0FF] hover:underline"
+                    onClick={movieJudge.closeEmailPrompt}
+                    className="px-3 py-1 bg-[#00E0FF] text-[#0B0B10] rounded text-xs font-medium"
                   >
-                    Resend email
+                    Continue
                   </button>
+                </div>
+              ) : null}
+              
+              {movieJudge.error && (
+                <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-400">
+                  {movieJudge.error}
                 </div>
               )}
             </div>
