@@ -64,6 +64,7 @@ const CommunityPoll: React.FC = () => {
   const [showEmailPrompt, setShowEmailPrompt] = useState<{ movieId: number; verdict: 'cinema' | 'not-cinema' } | null>(null);
   const [userEmail, setUserEmail] = useState('');
   const [isEmailVerificationSent, setIsEmailVerificationSent] = useState(false);
+  const [isSubmittingEmailVerdict, setIsSubmittingEmailVerdict] = useState(false);
 
   // Load movies on component mount
   React.useEffect(() => {
@@ -271,6 +272,8 @@ const CommunityPoll: React.FC = () => {
         return;
       }
 
+      setIsSubmittingEmailVerdict(true);
+      
       // Send verification email
       const { error } = await supabase.auth.signInWithOtp({
         email: userEmail,
@@ -283,12 +286,49 @@ const CommunityPoll: React.FC = () => {
         throw error;
       }
 
-      setIsEmailVerificationSent(true);
+      // Record the vote immediately after email is sent
+      const result = await recordUserVerdict(userEmail, showEmailPrompt.movieId, showEmailPrompt.verdict);
+      
+      if (result.success && result.movie) {
+        // Update the movie in the local state
+        setMovies(prevMovies => 
+          prevMovies.map(movie => 
+            movie.id === showEmailPrompt.movieId ? result.movie! : movie
+          )
+        );
+
+        // Update user verdicts
+        setUserVerdicts(prev => ({
+          ...prev,
+          [showEmailPrompt.movieId]: showEmailPrompt.verdict
+        }));
+
+        // Show success feedback
+        const verdictText = showEmailPrompt.verdict === 'cinema' ? 'Cinema' : 'Not Cinema';
+        setVerdictFeedback({
+          movieId: showEmailPrompt.movieId,
+          message: `Vote recorded: ${verdictText}!`
+        });
+
+        setIsEmailVerificationSent(true);
+        
+        // Move to next movie after a short delay
+        setTimeout(() => {
+          setCurrentIndex((prev) => (prev + 1) % movies.length);
+        }, 1500);
+      } else {
+        setVerdictFeedback({
+          movieId: showEmailPrompt.movieId,
+          message: result.error || 'Failed to record verdict. Please try again.'
+        });
+      }
     } catch (error) {
       setVerdictFeedback({
         movieId: showEmailPrompt?.movieId || 0,
         message: error instanceof Error ? error.message : 'Failed to send verification email.'
       });
+    } finally {
+      setIsSubmittingEmailVerdict(false);
     }
   };
 
@@ -406,7 +446,7 @@ const CommunityPoll: React.FC = () => {
           <div className="bg-[rgba(16,18,24,0.95)] backdrop-blur-xl border border-[rgba(0,224,255,0.1)] rounded-2xl p-6 max-w-md w-full">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold font-space-grotesk text-[#00E0FF]">
-                Enter Email to Vote
+                Enter Email to Record Vote
               </h3>
               <button
                 onClick={() => setShowEmailPrompt(null)}
@@ -417,10 +457,10 @@ const CommunityPoll: React.FC = () => {
             </div>
             
             <p className="text-sm text-[#A6A9B3] mb-4">
-              Your vote will only count after you verify your email. This prevents duplicate votes.
+              Your vote will be recorded immediately. We'll send a verification link for future votes.
             </p>
             
-            {!isEmailVerificationSent ? (
+            {!isEmailVerificationSent && !isSubmittingEmailVerdict ? (
               <div className="space-y-3">
                 <input
                   type="email"
@@ -431,23 +471,44 @@ const CommunityPoll: React.FC = () => {
                 />
                 <button
                   onClick={handleEmailSubmit}
+                  disabled={isSubmittingEmailVerdict}
                   className="w-full flex items-center justify-center gap-2 py-3 bg-[#00E0FF] text-[#0B0B10] rounded-lg hover:bg-[#00C0E0] transition-colors font-medium"
                 >
-                  Send Verification Link
+                  {isSubmittingEmailVerdict ? 'Recording Vote...' : 'Submit Vote'}
                 </button>
               </div>
-            ) : (
+            ) : isSubmittingEmailVerdict ? (
               <div className="text-center">
                 <div className="w-12 h-12 bg-[rgba(0,224,255,0.1)] rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-6 h-6 text-[#00E0FF]" />
+                  <div className="w-6 h-6 border-2 border-[#00E0FF] border-t-transparent rounded-full animate-spin"></div>
                 </div>
-                <p className="text-sm text-[#00E0FF] mb-2">Check your email!</p>
+                <p className="text-sm text-[#00E0FF] mb-2">Recording your vote...</p>
                 <p className="text-xs text-[#A6A9B3]">
-                  We sent a verification link to <strong>{userEmail}</strong>.
-                  Click the link to count your vote.
+                  Please wait while we process your vote.
                 </p>
               </div>
-            )}
+            ) : isEmailVerificationSent ? (
+              <div className="text-center">
+                <div className="w-12 h-12 bg-[rgba(0,224,255,0.1)] rounded-full flex items-center justify-center mx-auto mb-3">
+                  <div className="w-6 h-6 text-[#00E0FF] flex items-center justify-center text-lg font-bold">✓</div>
+                </div>
+                <p className="text-sm text-[#00E0FF] mb-2">Vote recorded successfully!</p>
+                <p className="text-xs text-[#A6A9B3]">
+                  We sent a verification link to <strong>{userEmail}</strong> for future votes.
+                  Your vote has been counted.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowEmailPrompt(null);
+                    setIsEmailVerificationSent(false);
+                    setUserEmail('');
+                  }}
+                  className="mt-3 px-4 py-2 bg-[#00E0FF] text-[#0B0B10] rounded-lg hover:bg-[#00C0E0] transition-colors text-sm font-medium"
+                >
+                  Continue
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </>

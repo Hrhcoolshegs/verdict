@@ -31,6 +31,7 @@ export interface MovieJudgeActions {
   handleEmailChange: (email: string) => void;
   sendVerificationEmail: () => Promise<void>;
   signOut: () => Promise<void>;
+  closeEmailPrompt: () => void;
 }
 
 const STORAGE_KEYS = {
@@ -78,57 +79,8 @@ export const useMovieJudge = () => {
       if (session?.user?.email) {
         localStorage.setItem(STORAGE_KEYS.USER_EMAIL, session.user.email);
         
-        // Handle pending verdict after email verification
-        if (state.pendingVerdictType && state.currentMovie) {
-          try {
-            const hasJudged = await hasUserAlreadyJudged(session.user.email, state.currentMovie.id);
-            if (hasJudged) {
-              setState(prev => ({
-                ...prev,
-                error: 'You have already submitted a verdict for this movie.',
-                showEmailPrompt: false,
-                pendingVerdictType: null,
-              }));
-            } else {
-              // Record the pending verdict
-              setState(prev => ({ ...prev, isSubmittingVerdict: true }));
-              
-              const result = await recordUserVerdict(session.user.email, state.currentMovie.id, state.pendingVerdictType);
-              
-              if (result.success && result.movie) {
-                const newVerdict = isMovieCinema(result.movie) ? 'cinema' : 'not-cinema';
-                setState(prev => ({
-                  ...prev,
-                  verdict: newVerdict,
-                  currentMovie: result.movie!,
-                  isSubmittingVerdict: false,
-                  hasAlreadyJudged: true,
-                  userVerdict: state.pendingVerdictType!,
-                  showEmailPrompt: false,
-                  pendingVerdictType: null,
-                  error: null,
-                }));
-              } else {
-                setState(prev => ({
-                  ...prev,
-                  isSubmittingVerdict: false,
-                  error: result.error || 'Failed to record verdict. Please try again.',
-                  showEmailPrompt: false,
-                  pendingVerdictType: null,
-                }));
-              }
-            }
-          } catch (error) {
-            setState(prev => ({
-              ...prev,
-              isSubmittingVerdict: false,
-              error: 'Failed to record verdict. Please try again.',
-              showEmailPrompt: false,
-              pendingVerdictType: null,
-            }));
-          }
-        } else if (state.currentMovie) {
-          // Just update the user's verdict status for current movie
+        // Update the user's verdict status for current movie
+        if (state.currentMovie) {
           const hasJudged = await hasUserAlreadyJudged(session.user.email, state.currentMovie.id);
           const userVerdict = hasJudged ? await getUserVerdict(session.user.email, state.currentMovie.id) : null;
           
@@ -151,7 +103,7 @@ export const useMovieJudge = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [state.currentMovie, state.pendingVerdictType]);
+  }, [state.currentMovie]);
 
   // Persist state changes to localStorage
   useEffect(() => {
@@ -353,7 +305,18 @@ export const useMovieJudge = () => {
       }
     }
 
+    if (!state.pendingVerdictType || !state.currentMovie) {
+      setState(prev => ({
+        ...prev,
+        error: 'No pending verdict to record.',
+      }));
+      return;
+    }
+
     try {
+      setState(prev => ({ ...prev, isSubmittingVerdict: true, error: null }));
+      
+      // Send verification email
       const { error } = await supabase.auth.signInWithOtp({
         email: state.userEmail,
         options: {
@@ -365,18 +328,48 @@ export const useMovieJudge = () => {
         throw error;
       }
 
-      setState(prev => ({
-        ...prev,
-        isEmailVerificationSent: true,
-        error: null,
-      }));
+      // Record the vote immediately after email is sent
+      const result = await recordUserVerdict(state.userEmail, state.currentMovie.id, state.pendingVerdictType);
+      
+      if (result.success && result.movie) {
+        const newVerdict = isMovieCinema(result.movie) ? 'cinema' : 'not-cinema';
+        setState(prev => ({
+          ...prev,
+          verdict: newVerdict,
+          currentMovie: result.movie!,
+          isSubmittingVerdict: false,
+          hasAlreadyJudged: true,
+          userVerdict: state.pendingVerdictType!,
+          showEmailPrompt: false,
+          pendingVerdictType: null,
+          isEmailVerificationSent: true,
+          error: null,
+        }));
+      } else {
+        setState(prev => ({
+          ...prev,
+          isSubmittingVerdict: false,
+          error: result.error || 'Failed to record verdict. Please try again.',
+        }));
+      }
     } catch (error) {
       setState(prev => ({
         ...prev,
+        isSubmittingVerdict: false,
         error: error instanceof Error ? error.message : 'Failed to send verification email.',
       }));
     }
-  }, [state.userEmail, state.currentMovie]);
+  }, [state.userEmail, state.currentMovie, state.pendingVerdictType]);
+
+  const closeEmailPrompt = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      showEmailPrompt: false,
+      pendingVerdictType: null,
+      isEmailVerificationSent: false,
+      error: null,
+    }));
+  }, []);
 
   const handleMoodChange = useCallback((mood: string) => {
     setState(prev => ({
@@ -386,6 +379,151 @@ export const useMovieJudge = () => {
   }, []);
 
   const resetPanel = useCallback(() => {
+    setState(prev => ({
+      searchQuery: '',
+      verdict: null,
+      selectedMood: 'Friday Night Laughs',
+      isLoading: false,
+      error: null,
+      currentMovie: null,
+      isSubmittingVerdict: false,
+      user: null,
+      userEmail: '',
+      isEmailVerificationSent: false,
+      userVerdict: null,
+      hasAlreadyJudged: false,
+      showEmailPrompt: false,
+      pendingVerdictType: null,
+    }));
+    
+    // Clear localStorage
+    localStorage.removeItem(STORAGE_KEYS.SEARCH_QUERY);
+    localStorage.removeItem(STORAGE_KEYS.VERDICT);
+    localStorage.removeItem(STORAGE_KEYS.USER_EMAIL);
+    localStorage.setItem(STORAGE_KEYS.SELECTED_MOOD, 'Friday Night Laughs');
+    
+    // Sign out user
+    supabase.auth.signOut();
+  }, []);
+
+  const randomizeSelection = useCallback(async () => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      const randomMood = DEFAULT_MOODS[Math.floor(Math.random() * DEFAULT_MOODS.length)];
+      const randomMovie = await getRandomMovie();
+      
+      if (randomMovie) {
+        const movieVerdict = isMovieCinema(randomMovie) ? 'cinema' : 'not-cinema';
+        
+        setState(prev => ({
+          ...prev,
+          searchQuery: randomMovie.title,
+          verdict: movieVerdict,
+          currentMovie: randomMovie,
+          selectedMood: randomMood,
+          isLoading: false,
+          error: null,
+          isSubmittingVerdict: false,
+          hasAlreadyJudged: false,
+          userVerdict: null,
+          showEmailPrompt: false,
+          pendingVerdictType: null,
+        }));
+      } else {
+        throw new Error('Failed to get random movie');
+      }
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Failed to get random movie. Please try again.',
+      }));
+    }
+  }, []);
+
+  const shareVerdict = useCallback(async () => {
+    if (!state.verdict || !state.searchQuery) {
+      setState(prev => ({
+        ...prev,
+        error: 'Nothing to share yet. Search for a movie first!',
+      }));
+      return;
+    }
+
+    const verdictText = state.verdict === 'cinema' ? 'Cinema' : 'Not Quite Cinema';
+    const shareText = `"${state.searchQuery}" is ${verdictText} - judged on Is It Cinema?`;
+    
+    try {
+      if (navigator.share) {
+        // Use native sharing if available
+        await navigator.share({
+          title: 'Is It Cinema?',
+          text: shareText,
+          url: window.location.href,
+        });
+      } else {
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(shareText);
+        // You could show a toast notification here
+        console.log('Verdict copied to clipboard!');
+      }
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        error: 'Failed to share verdict. Please try again.',
+      }));
+    }
+  }, [state.verdict, state.searchQuery]);
+
+  const handleEmailChange = useCallback((email: string) => {
+    setState(prev => ({
+      ...prev,
+      userEmail: email,
+      error: null,
+    }));
+  }, []);
+
+  const signOut = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+      setState(prev => ({
+        ...prev,
+        user: null,
+        userEmail: '',
+        isEmailVerificationSent: false,
+        userVerdict: null,
+        hasAlreadyJudged: false,
+        showEmailPrompt: false,
+        pendingVerdictType: null,
+        error: null,
+      }));
+      localStorage.removeItem(STORAGE_KEYS.USER_EMAIL);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  }, []);
+
+  const actions: MovieJudgeActions = {
+    handleSearchChange,
+    handleSearch,
+    handleVerdictSubmit,
+    handleMoodChange,
+    resetPanel,
+    randomizeSelection,
+    shareVerdict,
+    handleEmailChange,
+    sendVerificationEmail,
+    signOut,
+    closeEmailPrompt,
+  };
+
+  return {
+    ...state,
+    ...actions,
+    moods: DEFAULT_MOODS,
+  };
+};
     setState(prev => ({
       searchQuery: '',
       verdict: null,
