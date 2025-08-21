@@ -4,11 +4,10 @@ const NarrativeText: React.FC = () => {
   const [visibleIndex, setVisibleIndex] = useState(-1);
 
   const narratives = [
-    "In the beginning, you press play...\n\nA story flickers to life. A world unfolds...",
-    "Some films stumble, fading before they even begin...\n\nOthers carry you, frame by frame, into something greater...",
+    "In the beginning, you press play...\n\nA story flickers to life.\nA world unfolds...",
+    "Some films stumble,\nfading before they even begin...\n\nOthers carry you,\nframe by frame,\ninto something greater...",
     "They ignite.\nThey linger.\nThey demand to be remembered.",
-    "Those are not just movies.\nThey are Cinema.",
-    "And now,\nThe verdict is yours."
+    "Those are not just movies.\n\nThey are Cinema."
   ];
 
   useEffect(() => {
