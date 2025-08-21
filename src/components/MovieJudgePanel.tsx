@@ -97,14 +97,14 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* User Authentication Section */}
-          {!movieJudge.user ? (
+          {/* Email Prompt Section - shown after user tries to vote */}
+          {!movieJudge.user && movieJudge.showEmailPrompt && (
             <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-6">
               <h4 className="text-lg font-medium font-space-grotesk mb-4 text-[#00E0FF]">
-                Verify Your Email to Judge
+                Enter Your Email to Count Your Vote
               </h4>
               <p className="text-sm text-[#A6A9B3] mb-4">
-                Enter your email to receive a verification link. This prevents duplicate verdicts and keeps scoring fair.
+                Your vote for "{movieJudge.searchQuery}" will only count after you verify your email. This prevents duplicate votes.
               </p>
               
               {!movieJudge.isEmailVerificationSent ? (
@@ -129,10 +129,10 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                   <div className="w-12 h-12 bg-[rgba(0,224,255,0.1)] rounded-full flex items-center justify-center mx-auto mb-3">
                     <Mail className="w-6 h-6 text-[#00E0FF]" />
                   </div>
-                  <p className="text-sm text-[#00E0FF] mb-2">Check your email!</p>
+                  <p className="text-sm text-[#00E0FF] mb-2">Check your email to complete your vote!</p>
                   <p className="text-xs text-[#A6A9B3]">
-                    We sent a verification link to <strong>{movieJudge.userEmail}</strong>. 
-                    Click the link to start judging movies.
+                    We sent a verification link to <strong>{movieJudge.userEmail}</strong>.
+                    Click the link to count your vote for "{movieJudge.searchQuery}".
                   </p>
                   <button
                     onClick={() => movieJudge.sendVerificationEmail()}
@@ -143,7 +143,10 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 </div>
               )}
             </div>
-          ) : (
+          )}
+
+          {/* Verified User Display */}
+          {movieJudge.user && (
             <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -178,7 +181,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 onChange={(e) => movieJudge.handleSearchChange(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Enter a movie title..."
-                disabled={movieJudge.isLoading || !movieJudge.user}
+                disabled={movieJudge.isLoading}
                 className="w-full px-4 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.2)] rounded-lg focus:border-[#00E0FF] focus:outline-none transition-colors text-[#F2F4F8] placeholder-[#A6A9B3]"
               />
               <button
@@ -236,7 +239,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
           )}
 
           {/* Manual Verdict Buttons */}
-          {movieJudge.user && movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && !movieJudge.currentMovie && !movieJudge.hasAlreadyJudged && (
+          {movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && !movieJudge.currentMovie && !movieJudge.showEmailPrompt && (
             <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-6">
               <h4 className="text-lg font-medium font-space-grotesk mb-4 text-[#00E0FF] text-center">
                 Your Verdict on "{movieJudge.searchQuery}"
@@ -244,7 +247,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               <div className="flex gap-3">
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('not-cinema')}
-                  disabled={movieJudge.isSubmittingVerdict || movieJudge.hasAlreadyJudged}
+                  disabled={movieJudge.isSubmittingVerdict || (movieJudge.user && movieJudge.hasAlreadyJudged)}
                   className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   {movieJudge.isSubmittingVerdict ? (
@@ -261,7 +264,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 </button>
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('cinema')}
-                  disabled={movieJudge.isSubmittingVerdict || movieJudge.hasAlreadyJudged}
+                  disabled={movieJudge.isSubmittingVerdict || (movieJudge.user && movieJudge.hasAlreadyJudged)}
                   className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   {movieJudge.isSubmittingVerdict ? (
@@ -281,9 +284,47 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
           )}
 
           {/* Database Movie Verdict Buttons */}
-          {movieJudge.user && movieJudge.currentMovie && !movieJudge.hasAlreadyJudged && (
+          {movieJudge.currentMovie && !movieJudge.hasAlreadyJudged && !movieJudge.showEmailPrompt && (
             <div className="text-center">
-              <p className="text-sm text-[#A6A9B3] mb-4">Cast your verdict for this movie:</p>
+              <p className="text-sm text-[#A6A9B3] mb-4">
+                {movieJudge.user ? 'Cast your verdict for this movie:' : 'Click to vote (email verification required):'}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => movieJudge.handleVerdictSubmit('not-cinema')}
+                  disabled={movieJudge.isSubmittingVerdict || (movieJudge.user && movieJudge.hasAlreadyJudged)}
+                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  {movieJudge.isSubmittingVerdict ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
+                      <span className="font-medium">Recording...</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-5 h-5" />
+                      <span className="font-medium">Not Cinema</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => movieJudge.handleVerdictSubmit('cinema')}
+                  disabled={movieJudge.isSubmittingVerdict || (movieJudge.user && movieJudge.hasAlreadyJudged)}
+                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  {movieJudge.isSubmittingVerdict ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
+                      <span className="font-medium">Recording...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      <span className="font-medium">Cinema</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           )}
 
@@ -296,7 +337,6 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               {movieJudge.moods.map((mood) => (
                 <button
                   key={mood}
-                  disabled={!movieJudge.user}
                   onClick={() => movieJudge.handleMoodChange(mood)}
                   className={`px-3 py-3 text-sm rounded-lg border transition-all ${
                     movieJudge.selectedMood === mood
@@ -339,7 +379,6 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
           <button
             onClick={movieJudge.randomizeSelection}
             className="flex-1 flex items-center justify-center gap-2 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.1)] rounded-lg hover:border-[#00E0FF] transition-colors text-sm"
-            disabled={!movieJudge.user}
           >
             <Shuffle className="w-4 h-4" />
             Random
@@ -370,14 +409,14 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
 
         {/* Mobile Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Mobile User Authentication Section */}
-          {!movieJudge.user ? (
+          {/* Mobile Email Prompt Section */}
+          {!movieJudge.user && movieJudge.showEmailPrompt && (
             <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-4">
               <h4 className="text-base font-medium font-space-grotesk mb-3 text-[#00E0FF]">
-                Verify Your Email to Judge
+                Enter Your Email to Count Your Vote
               </h4>
               <p className="text-sm text-[#A6A9B3] mb-3">
-                Enter your email to receive a verification link.
+                Your vote will only count after email verification.
               </p>
               
               {!movieJudge.isEmailVerificationSent ? (
@@ -402,7 +441,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                   <div className="w-10 h-10 bg-[rgba(0,224,255,0.1)] rounded-full flex items-center justify-center mx-auto mb-2">
                     <Mail className="w-5 h-5 text-[#00E0FF]" />
                   </div>
-                  <p className="text-sm text-[#00E0FF] mb-1">Check your email!</p>
+                  <p className="text-sm text-[#00E0FF] mb-1">Check your email to complete your vote!</p>
                   <p className="text-xs text-[#A6A9B3] mb-2">
                     Verification link sent to <strong>{movieJudge.userEmail}</strong>
                   </p>
@@ -415,7 +454,9 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 </div>
               )}
             </div>
-          ) : (
+          )}
+
+          {movieJudge.user && (
             <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-[#00E0FF]" />
@@ -436,7 +477,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 onChange={(e) => movieJudge.handleSearchChange(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Enter a movie title..."
-                disabled={movieJudge.isLoading || !movieJudge.user}
+                disabled={movieJudge.isLoading}
                 className="w-full px-4 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.2)] rounded-lg focus:border-[#00E0FF] focus:outline-none transition-colors text-[#F2F4F8] placeholder-[#A6A9B3] text-base"
               />
               <button
@@ -494,7 +535,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
           )}
 
           {/* Manual Verdict Buttons */}
-          {movieJudge.user && movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && !movieJudge.currentMovie && !movieJudge.hasAlreadyJudged && (
+          {movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && !movieJudge.currentMovie && !movieJudge.showEmailPrompt && (
             <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-4">
               <h4 className="text-base font-medium font-space-grotesk mb-3 text-[#00E0FF] text-center">
                 Your Verdict on "{movieJudge.searchQuery}"
@@ -502,7 +543,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               <div className="flex gap-2">
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('not-cinema')}
-                  disabled={movieJudge.isSubmittingVerdict || movieJudge.hasAlreadyJudged}
+                  disabled={movieJudge.isSubmittingVerdict || (movieJudge.user && movieJudge.hasAlreadyJudged)}
                   className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {movieJudge.isSubmittingVerdict ? (
@@ -519,7 +560,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 </button>
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('cinema')}
-                  disabled={movieJudge.isSubmittingVerdict || movieJudge.hasAlreadyJudged}
+                  disabled={movieJudge.isSubmittingVerdict || (movieJudge.user && movieJudge.hasAlreadyJudged)}
                   className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {movieJudge.isSubmittingVerdict ? (
@@ -547,7 +588,6 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               {movieJudge.moods.map((mood) => (
                 <button
                   key={mood}
-                  disabled={!movieJudge.user}
                   onClick={() => movieJudge.handleMoodChange(mood)}
                   className={`px-3 py-3 text-sm rounded-lg border transition-all ${
                     movieJudge.selectedMood === mood
@@ -590,7 +630,6 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
           <button
             onClick={movieJudge.randomizeSelection}
             className="flex-1 flex items-center justify-center gap-2 py-3 bg-[rgba(16,18,24,0.8)] border border-[rgba(0,224,255,0.1)] rounded-lg hover:border-[#00E0FF] transition-colors text-sm"
-            disabled={!movieJudge.user}
           >
             <Shuffle className="w-4 h-4" />
             Random
