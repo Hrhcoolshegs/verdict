@@ -48,7 +48,7 @@ const Hero: React.FC<HeroProps> = ({ onOpenPanel }) => {
             className="group relative inline-flex items-center gap-3 sm:gap-4 px-6 sm:px-10 py-4 sm:py-5 bg-gradient-to-r from-[#00E0FF] to-[#00C0E0] text-[#0B0B10] font-semibold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-[#00E0FF]/25"
           >
             <Search className="w-5 h-5 sm:w-6 sm:h-6 transition-transform group-hover:scale-110" />
-            <span className="text-base sm:text-lg">Judge a Movie</span>
+            <span className="text-base sm:text-lg">Verdict Registry</span>
             <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#00E0FF] to-[#00C0E0] opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
           </button>
         </div>

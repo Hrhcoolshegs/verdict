@@ -86,7 +86,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
       <div className="fixed top-0 left-0 h-full w-96 bg-[rgba(16,18,24,0.95)] backdrop-blur-xl border-r border-[rgba(0,224,255,0.1)] z-40 transform transition-transform duration-300 ease-out translate-x-0 hidden md:flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 pt-24 border-b border-[rgba(0,224,255,0.1)]">
-          <h2 className="text-xl font-bold font-space-grotesk text-[#00E0FF]">Judge a Movie</h2>
+          <h2 className="text-xl font-bold font-space-grotesk text-[#00E0FF]">Verdict Registry</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-[rgba(0,224,255,0.1)] rounded-lg transition-colors"
@@ -415,7 +415,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
       <div className="fixed inset-x-0 bottom-0 bg-[rgba(16,18,24,0.95)] backdrop-blur-xl border-t border-[rgba(0,224,255,0.1)] z-40 transform transition-transform duration-300 ease-out translate-y-0 md:hidden flex flex-col" style={{ height: '85vh' }}>
         {/* Mobile Header */}
         <div className="flex items-center justify-between p-4 border-b border-[rgba(0,224,255,0.1)]">
-          <h2 className="text-lg font-bold font-space-grotesk text-[#00E0FF]">Judge a Movie</h2>
+          <h2 className="text-lg font-bold font-space-grotesk text-[#00E0FF]">Verdict Registry</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-[rgba(0,224,255,0.1)] rounded-lg transition-colors"
