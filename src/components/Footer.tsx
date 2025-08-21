@@ -65,7 +65,7 @@ const Footer: React.FC = () => {
         <div className="h-px bg-gradient-to-r from-transparent via-[rgba(0,224,255,0.1)] to-transparent mb-10"></div>
         
         <p className="text-xs text-[#A6A9B3] font-space-grotesk">
-          © 2025 Is It Cinema? • Made with passion for the art of film
+          ©2025 Verdict • Made for the Cinema
         </p>
       </div>
     </footer>
