@@ -383,10 +383,6 @@ const CommunityPoll: React.FC = () => {
     );
   }
 
-  // Email Prompt Modal
-  const EmailPromptModal = () => {
-    if (!showEmailPrompt) return null;
-
   const getStats = () => {
     const cinemaMovies = movies.filter(isMovieCinema);
     
@@ -399,6 +395,10 @@ const CommunityPoll: React.FC = () => {
   };
 
   const stats = getStats();
+
+  // Email Prompt Modal
+  const EmailPromptModal = () => {
+    if (!showEmailPrompt) return null;
 
     return (
       <>
