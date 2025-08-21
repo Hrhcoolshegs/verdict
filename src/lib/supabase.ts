@@ -47,6 +47,29 @@ export type Database = {
           updated_at?: string;
         };
       };
+      user_verdicts: {
+        Row: {
+          id: string;
+          user_email: string;
+          movie_id: number;
+          verdict_type: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_email: string;
+          movie_id: number;
+          verdict_type: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_email?: string;
+          movie_id?: number;
+          verdict_type?: string;
+          created_at?: string;
+        };
+      };
     };
     Functions: {
       increment_movie_verdict: {
@@ -55,6 +78,32 @@ export type Database = {
           verdict_type: string;
         };
         Returns: void;
+      };
+      has_user_already_judged: {
+        Args: {
+          p_user_email: string;
+          p_movie_id: number;
+        };
+        Returns: boolean;
+      };
+      record_user_verdict: {
+        Args: {
+          p_user_email: string;
+          p_movie_id: number;
+          p_verdict_type: string;
+        };
+        Returns: {
+          success: boolean;
+          error?: string;
+          message?: string;
+        };
+      };
+      get_user_verdict: {
+        Args: {
+          p_user_email: string;
+          p_movie_id: number;
+        };
+        Returns: string;
       };
     };
   };

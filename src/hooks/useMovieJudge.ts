@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { findMovieByTitle, isMovieCinema, getRandomMovie, submitMovieVerdict, type Movie } from '../data/movies';
+import { findMovieByTitle, isMovieCinema, getRandomMovie, submitMovieVerdict, hasUserAlreadyJudged, getUserVerdict, type Movie } from '../data/movies';
+import { supabase } from '../lib/supabase';
+import type { User } from '@supabase/supabase-js';
 
 export interface MovieJudgeState {
   searchQuery: string;
@@ -9,6 +11,11 @@ export interface MovieJudgeState {
   error: string | null;
   currentMovie: Movie | null;
   isSubmittingVerdict: boolean;
+  user: User | null;
+  userEmail: string;
+  isEmailVerificationSent: boolean;
+  userVerdict: 'cinema' | 'not-cinema' | null;
+  hasAlreadyJudged: boolean;
 }
 
 export interface MovieJudgeActions {
@@ -19,12 +26,16 @@ export interface MovieJudgeActions {
   resetPanel: () => void;
   randomizeSelection: () => void;
   shareVerdict: () => Promise<void>;
+  handleEmailChange: (email: string) => void;
+  sendVerificationEmail: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const STORAGE_KEYS = {
   SEARCH_QUERY: 'cinema-search-query',
   VERDICT: 'cinema-verdict',
   SELECTED_MOOD: 'cinema-selected-mood',
+  USER_EMAIL: 'cinema-user-email',
 } as const;
 
 const DEFAULT_MOODS = [
@@ -44,7 +55,50 @@ export const useMovieJudge = () => {
     error: null,
     currentMovie: null,
     isSubmittingVerdict: false,
+    user: null,
+    userEmail: localStorage.getItem(STORAGE_KEYS.USER_EMAIL) || '',
+    isEmailVerificationSent: false,
+    userVerdict: null,
+    hasAlreadyJudged: false,
   }));
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setState(prev => ({
+        ...prev,
+        user: session?.user || null,
+        userEmail: session?.user?.email || prev.userEmail,
+      }));
+
+      if (session?.user?.email) {
+        localStorage.setItem(STORAGE_KEYS.USER_EMAIL, session.user.email);
+        
+        // Check if user has already judged current movie
+        if (state.currentMovie) {
+          const hasJudged = await hasUserAlreadyJudged(session.user.email, state.currentMovie.id);
+          const userVerdict = hasJudged ? await getUserVerdict(session.user.email, state.currentMovie.id) : null;
+          
+          setState(prev => ({
+            ...prev,
+            hasAlreadyJudged: hasJudged,
+            userVerdict,
+          }));
+        }
+      }
+    });
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setState(prev => ({
+        ...prev,
+        user: session?.user || null,
+        userEmail: session?.user?.email || prev.userEmail,
+      }));
+    });
+
+    return () => subscription.unsubscribe();
+  }, [state.currentMovie]);
 
   // Persist state changes to localStorage
   useEffect(() => {
@@ -67,6 +121,32 @@ export const useMovieJudge = () => {
     localStorage.setItem(STORAGE_KEYS.SELECTED_MOOD, state.selectedMood);
   }, [state.selectedMood]);
 
+  useEffect(() => {
+    if (state.userEmail) {
+      localStorage.setItem(STORAGE_KEYS.USER_EMAIL, state.userEmail);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.USER_EMAIL);
+    }
+  }, [state.userEmail]);
+
+  // Check user verdict when movie changes
+  useEffect(() => {
+    const checkUserVerdict = async () => {
+      if (state.user?.email && state.currentMovie) {
+        const hasJudged = await hasUserAlreadyJudged(state.user.email, state.currentMovie.id);
+        const userVerdict = hasJudged ? await getUserVerdict(state.user.email, state.currentMovie.id) : null;
+        
+        setState(prev => ({
+          ...prev,
+          hasAlreadyJudged: hasJudged,
+          userVerdict,
+        }));
+      }
+    };
+
+    checkUserVerdict();
+  }, [state.user, state.currentMovie]);
+
   // Actions
   const handleSearchChange = useCallback((value: string) => {
     setState(prev => ({
@@ -75,6 +155,7 @@ export const useMovieJudge = () => {
       error: null,
       verdict: null,
       currentMovie: null,
+      hasAlreadyJudged: false,
     }));
   }, []);
 
@@ -120,6 +201,24 @@ export const useMovieJudge = () => {
   }, [state.searchQuery]);
 
   const handleVerdictSubmit = useCallback(async (verdict: 'cinema' | 'not-cinema') => {
+    // Check if user is authenticated
+    if (!state.user?.email) {
+      setState(prev => ({
+        ...prev,
+        error: 'Please verify your email first to submit a verdict.',
+      }));
+      return;
+    }
+
+    // Check if user has already judged this movie
+    if (state.hasAlreadyJudged) {
+      setState(prev => ({
+        ...prev,
+        error: 'You have already submitted a verdict for this movie.',
+      }));
+      return;
+    }
+
     if (!state.currentMovie) {
       // For movies not in database, just set the verdict locally
       setState(prev => ({
@@ -133,7 +232,7 @@ export const useMovieJudge = () => {
     setState(prev => ({ ...prev, isSubmittingVerdict: true, error: null }));
 
     try {
-      const updatedMovie = await submitMovieVerdict(state.currentMovie.id, verdict);
+      const updatedMovie = await submitMovieVerdict(state.currentMovie.id, verdict, state.user.email);
       
       if (updatedMovie) {
         const newVerdict = isMovieCinema(updatedMovie) ? 'cinema' : 'not-cinema';
@@ -142,6 +241,8 @@ export const useMovieJudge = () => {
           verdict: newVerdict,
           currentMovie: updatedMovie,
           isSubmittingVerdict: false,
+          hasAlreadyJudged: true,
+          userVerdict: verdict,
         }));
       } else {
         throw new Error('Failed to update movie verdict');
@@ -150,10 +251,10 @@ export const useMovieJudge = () => {
       setState(prev => ({
         ...prev,
         isSubmittingVerdict: false,
-        error: 'Failed to submit verdict. Please try again.',
+        error: error instanceof Error ? error.message : 'Failed to submit verdict. Please try again.',
       }));
     }
-  }, [state.currentMovie]);
+  }, [state.currentMovie, state.user, state.hasAlreadyJudged]);
 
   const handleMoodChange = useCallback((mood: string) => {
     setState(prev => ({
@@ -171,12 +272,21 @@ export const useMovieJudge = () => {
       error: null,
       currentMovie: null,
       isSubmittingVerdict: false,
+      user: null,
+      userEmail: '',
+      isEmailVerificationSent: false,
+      userVerdict: null,
+      hasAlreadyJudged: false,
     });
     
     // Clear localStorage
     localStorage.removeItem(STORAGE_KEYS.SEARCH_QUERY);
     localStorage.removeItem(STORAGE_KEYS.VERDICT);
+    localStorage.removeItem(STORAGE_KEYS.USER_EMAIL);
     localStorage.setItem(STORAGE_KEYS.SELECTED_MOOD, 'Friday Night Laughs');
+    
+    // Sign out user
+    supabase.auth.signOut();
   }, []);
 
   const randomizeSelection = useCallback(async () => {
@@ -197,6 +307,8 @@ export const useMovieJudge = () => {
           isLoading: false,
           error: null,
           isSubmittingVerdict: false,
+          hasAlreadyJudged: false,
+          userVerdict: null,
         });
       } else {
         throw new Error('Failed to get random movie');
@@ -244,6 +356,76 @@ export const useMovieJudge = () => {
     }
   }, [state.verdict, state.searchQuery]);
 
+  const handleEmailChange = useCallback((email: string) => {
+    setState(prev => ({
+      ...prev,
+      userEmail: email,
+      error: null,
+    }));
+  }, []);
+
+  const sendVerificationEmail = useCallback(async () => {
+    if (!state.userEmail.trim()) {
+      setState(prev => ({
+        ...prev,
+        error: 'Please enter your email address.',
+      }));
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(state.userEmail)) {
+      setState(prev => ({
+        ...prev,
+        error: 'Please enter a valid email address.',
+      }));
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: state.userEmail,
+        options: {
+          shouldCreateUser: true,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setState(prev => ({
+        ...prev,
+        isEmailVerificationSent: true,
+        error: null,
+      }));
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Failed to send verification email.',
+      }));
+    }
+  }, [state.userEmail]);
+
+  const signOut = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+      setState(prev => ({
+        ...prev,
+        user: null,
+        userEmail: '',
+        isEmailVerificationSent: false,
+        userVerdict: null,
+        hasAlreadyJudged: false,
+        error: null,
+      }));
+      localStorage.removeItem(STORAGE_KEYS.USER_EMAIL);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  }, []);
+
   const actions: MovieJudgeActions = {
     handleSearchChange,
     handleSearch,
@@ -252,6 +434,9 @@ export const useMovieJudge = () => {
     resetPanel,
     randomizeSelection,
     shareVerdict,
+    handleEmailChange,
+    sendVerificationEmail,
+    signOut,
   };
 
   return {

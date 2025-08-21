@@ -85,17 +85,35 @@ export const searchMoviesByTitle = async (title: string): Promise<Movie[]> => {
 };
 
 // Submit a verdict for a movie
-export const submitMovieVerdict = async (movieId: number, verdict: 'cinema' | 'not-cinema'): Promise<Movie | null> => {
+export const submitMovieVerdict = async (movieId: number, verdict: 'cinema' | 'not-cinema', userEmail?: string): Promise<Movie | null> => {
   try {
-    // Use the database function to safely increment the verdict count
-    const { error: functionError } = await supabase.rpc('increment_movie_verdict', {
-      movie_id: movieId,
-      verdict_type: verdict
-    });
+    if (userEmail) {
+      // Use the new function that records user verdict and prevents duplicates
+      const { data: result, error: functionError } = await supabase.rpc('record_user_verdict', {
+        p_user_email: userEmail,
+        p_movie_id: movieId,
+        p_verdict_type: verdict
+      });
 
-    if (functionError) {
-      console.error('Error submitting verdict:', functionError);
-      throw functionError;
+      if (functionError) {
+        console.error('Error submitting verdict:', functionError);
+        throw functionError;
+      }
+
+      if (result && !result.success) {
+        throw new Error(result.error || 'Failed to submit verdict');
+      }
+    } else {
+      // Fallback to old method for backward compatibility
+      const { error: functionError } = await supabase.rpc('increment_movie_verdict', {
+        movie_id: movieId,
+        verdict_type: verdict
+      });
+
+      if (functionError) {
+        console.error('Error submitting verdict:', functionError);
+        throw functionError;
+      }
     }
 
     // Fetch and return the updated movie data
@@ -103,6 +121,46 @@ export const submitMovieVerdict = async (movieId: number, verdict: 'cinema' | 'n
   } catch (error) {
     console.error('Failed to submit verdict:', error);
     throw error;
+  }
+};
+
+// Check if user has already judged a movie
+export const hasUserAlreadyJudged = async (userEmail: string, movieId: number): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.rpc('has_user_already_judged', {
+      p_user_email: userEmail,
+      p_movie_id: movieId
+    });
+
+    if (error) {
+      console.error('Error checking user verdict:', error);
+      return false;
+    }
+
+    return data || false;
+  } catch (error) {
+    console.error('Failed to check user verdict:', error);
+    return false;
+  }
+};
+
+// Get user's verdict for a movie
+export const getUserVerdict = async (userEmail: string, movieId: number): Promise<'cinema' | 'not-cinema' | null> => {
+  try {
+    const { data, error } = await supabase.rpc('get_user_verdict', {
+      p_user_email: userEmail,
+      p_movie_id: movieId
+    });
+
+    if (error) {
+      console.error('Error getting user verdict:', error);
+      return null;
+    }
+
+    return data as 'cinema' | 'not-cinema' | null;
+  } catch (error) {
+    console.error('Failed to get user verdict:', error);
+    return null;
   }
 };
 
