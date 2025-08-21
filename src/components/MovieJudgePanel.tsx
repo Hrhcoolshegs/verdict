@@ -143,7 +143,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                   <p className="text-sm text-[#00E0FF] mb-2">Vote recorded successfully!</p>
                   <p className="text-xs text-[#A6A9B3]">
                     We sent a verification link to <strong>{movieJudge.userEmail}</strong> for future votes.
-                    Your vote for "{movieJudge.searchQuery}" has been counted.
+                    Your vote for "{movieJudge.searchQuery}\" has been counted.
                   </p>
                   <button
                     onClick={movieJudge.closeEmailPrompt}
@@ -574,7 +574,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               <div className="flex gap-2">
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('not-cinema')}
-                  disabled={movieJudge.isSubmittingVerdict || movieJudge.showEmailPrompt || (movieJudge.user && movieJudge.hasAlreadyJudged)}
+                  disabled={movieJudge.isSubmittingVerdict || (movieJudge.user && movieJudge.hasAlreadyJudged)}
                   className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {movieJudge.isSubmittingVerdict ? (
@@ -591,7 +591,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 </button>
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('cinema')}
-                  disabled={movieJudge.isSubmittingVerdict || movieJudge.showEmailPrompt || (movieJudge.user && movieJudge.hasAlreadyJudged)}
+                  disabled={movieJudge.isSubmittingVerdict || (movieJudge.user && movieJudge.hasAlreadyJudged)}
                   className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {movieJudge.isSubmittingVerdict ? (
