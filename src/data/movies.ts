@@ -84,43 +84,44 @@ export const searchMoviesByTitle = async (title: string): Promise<Movie[]> => {
   }
 };
 
-// Submit a verdict for a movie
-export const submitMovieVerdict = async (movieId: number, verdict: 'cinema' | 'not-cinema', userEmail?: string): Promise<Movie | null> => {
+// Record user verdict with email (this now handles both user tracking and vote counting)
+export const recordUserVerdict = async (userEmail: string, movieId: number, verdict: 'cinema' | 'not-cinema'): Promise<{ success: boolean; error?: string; message?: string; movie?: Movie }> => {
   try {
-    if (userEmail) {
-      // Use the new function that records user verdict and prevents duplicates
-      const { data: result, error: functionError } = await supabase.rpc('record_user_verdict', {
-        p_user_email: userEmail,
-        p_movie_id: movieId,
-        p_verdict_type: verdict
-      });
+    const { data: result, error: functionError } = await supabase.rpc('record_user_verdict', {
+      p_user_email: userEmail,
+      p_movie_id: movieId,
+      p_verdict_type: verdict
+    });
 
-      if (functionError) {
-        console.error('Error submitting verdict:', functionError);
-        throw functionError;
-      }
-
-      if (result && !result.success) {
-        throw new Error(result.error || 'Failed to submit verdict');
-      }
-    } else {
-      // Fallback to old method for backward compatibility
-      const { error: functionError } = await supabase.rpc('increment_movie_verdict', {
-        movie_id: movieId,
-        verdict_type: verdict
-      });
-
-      if (functionError) {
-        console.error('Error submitting verdict:', functionError);
-        throw functionError;
-      }
+    if (functionError) {
+      console.error('Error recording verdict:', functionError);
+      return {
+        success: false,
+        error: 'Failed to record verdict. Please try again.'
+      };
     }
 
-    // Fetch and return the updated movie data
-    return await fetchMovieById(movieId);
+    if (result && !result.success) {
+      return {
+        success: false,
+        error: result.error || 'Failed to record verdict'
+      };
+    }
+
+    // Fetch updated movie data
+    const updatedMovie = await fetchMovieById(movieId);
+    
+    return {
+      success: true,
+      message: result?.message || 'Verdict recorded successfully!',
+      movie: updatedMovie
+    };
   } catch (error) {
-    console.error('Failed to submit verdict:', error);
-    throw error;
+    console.error('Failed to record verdict:', error);
+    return {
+      success: false,
+      error: 'Failed to record verdict. Please try again.'
+    };
   }
 };
 

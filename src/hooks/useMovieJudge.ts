@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { findMovieByTitle, isMovieCinema, getRandomMovie, submitMovieVerdict, hasUserAlreadyJudged, getUserVerdict, type Movie } from '../data/movies';
+import { findMovieByTitle, isMovieCinema, getRandomMovie, recordUserVerdict, hasUserAlreadyJudged, getUserVerdict, type Movie } from '../data/movies';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
@@ -16,6 +16,8 @@ export interface MovieJudgeState {
   isEmailVerificationSent: boolean;
   userVerdict: 'cinema' | 'not-cinema' | null;
   hasAlreadyJudged: boolean;
+  showEmailPrompt: boolean;
+  pendingVerdictType: 'cinema' | 'not-cinema' | null;
 }
 
 export interface MovieJudgeActions {
@@ -60,6 +62,8 @@ export const useMovieJudge = () => {
     isEmailVerificationSent: false,
     userVerdict: null,
     hasAlreadyJudged: false,
+    showEmailPrompt: false,
+    pendingVerdictType: null,
   }));
 
   // Listen for auth state changes
@@ -74,8 +78,57 @@ export const useMovieJudge = () => {
       if (session?.user?.email) {
         localStorage.setItem(STORAGE_KEYS.USER_EMAIL, session.user.email);
         
-        // Check if user has already judged current movie
-        if (state.currentMovie) {
+        // Handle pending verdict after email verification
+        if (state.pendingVerdictType && state.currentMovie) {
+          try {
+            const hasJudged = await hasUserAlreadyJudged(session.user.email, state.currentMovie.id);
+            if (hasJudged) {
+              setState(prev => ({
+                ...prev,
+                error: 'You have already submitted a verdict for this movie.',
+                showEmailPrompt: false,
+                pendingVerdictType: null,
+              }));
+            } else {
+              // Record the pending verdict
+              setState(prev => ({ ...prev, isSubmittingVerdict: true }));
+              
+              const result = await recordUserVerdict(session.user.email, state.currentMovie.id, state.pendingVerdictType);
+              
+              if (result.success && result.movie) {
+                const newVerdict = isMovieCinema(result.movie) ? 'cinema' : 'not-cinema';
+                setState(prev => ({
+                  ...prev,
+                  verdict: newVerdict,
+                  currentMovie: result.movie!,
+                  isSubmittingVerdict: false,
+                  hasAlreadyJudged: true,
+                  userVerdict: state.pendingVerdictType!,
+                  showEmailPrompt: false,
+                  pendingVerdictType: null,
+                  error: null,
+                }));
+              } else {
+                setState(prev => ({
+                  ...prev,
+                  isSubmittingVerdict: false,
+                  error: result.error || 'Failed to record verdict. Please try again.',
+                  showEmailPrompt: false,
+                  pendingVerdictType: null,
+                }));
+              }
+            }
+          } catch (error) {
+            setState(prev => ({
+              ...prev,
+              isSubmittingVerdict: false,
+              error: 'Failed to record verdict. Please try again.',
+              showEmailPrompt: false,
+              pendingVerdictType: null,
+            }));
+          }
+        } else if (state.currentMovie) {
+          // Just update the user's verdict status for current movie
           const hasJudged = await hasUserAlreadyJudged(session.user.email, state.currentMovie.id);
           const userVerdict = hasJudged ? await getUserVerdict(session.user.email, state.currentMovie.id) : null;
           
@@ -98,7 +151,7 @@ export const useMovieJudge = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [state.currentMovie]);
+  }, [state.currentMovie, state.pendingVerdictType]);
 
   // Persist state changes to localStorage
   useEffect(() => {
@@ -201,60 +254,129 @@ export const useMovieJudge = () => {
   }, [state.searchQuery]);
 
   const handleVerdictSubmit = useCallback(async (verdict: 'cinema' | 'not-cinema') => {
-    // Check if user is authenticated
-    if (!state.user?.email) {
-      setState(prev => ({
-        ...prev,
-        error: 'Please verify your email first to submit a verdict.',
-      }));
-      return;
-    }
-
-    // Check if user has already judged this movie
-    if (state.hasAlreadyJudged) {
-      setState(prev => ({
-        ...prev,
-        error: 'You have already submitted a verdict for this movie.',
-      }));
-      return;
-    }
-
     if (!state.currentMovie) {
-      // For movies not in database, just set the verdict locally
       setState(prev => ({
         ...prev,
-        verdict,
-        error: null,
+        error: 'Please search for a movie first.',
       }));
       return;
     }
 
-    setState(prev => ({ ...prev, isSubmittingVerdict: true, error: null }));
+    // If user is already authenticated
+    if (state.user?.email) {
+      // Check if user has already judged this movie
+      try {
+        const hasJudged = await hasUserAlreadyJudged(state.user.email, state.currentMovie.id);
+        if (hasJudged) {
+          setState(prev => ({
+            ...prev,
+            error: 'You have already submitted a verdict for this movie.',
+          }));
+          return;
+        }
 
-    try {
-      const updatedMovie = await submitMovieVerdict(state.currentMovie.id, verdict, state.user.email);
-      
-      if (updatedMovie) {
-        const newVerdict = isMovieCinema(updatedMovie) ? 'cinema' : 'not-cinema';
+        // Record the verdict
+        setState(prev => ({ ...prev, isSubmittingVerdict: true, error: null }));
+        
+        const result = await recordUserVerdict(state.user.email, state.currentMovie.id, verdict);
+        
+        if (result.success && result.movie) {
+          const newVerdict = isMovieCinema(result.movie) ? 'cinema' : 'not-cinema';
+          setState(prev => ({
+            ...prev,
+            verdict: newVerdict,
+            currentMovie: result.movie!,
+            isSubmittingVerdict: false,
+            hasAlreadyJudged: true,
+            userVerdict: verdict,
+            error: null,
+          }));
+        } else {
+          setState(prev => ({
+            ...prev,
+            isSubmittingVerdict: false,
+            error: result.error || 'Failed to record verdict. Please try again.',
+          }));
+        }
+      } catch (error) {
         setState(prev => ({
           ...prev,
-          verdict: newVerdict,
-          currentMovie: updatedMovie,
           isSubmittingVerdict: false,
-          hasAlreadyJudged: true,
-          userVerdict: verdict,
+          error: 'Failed to record verdict. Please try again.',
         }));
-      } else {
-        throw new Error('Failed to update movie verdict');
       }
+    } else {
+      // User is not authenticated - show email prompt
+      setState(prev => ({
+        ...prev,
+        showEmailPrompt: true,
+        pendingVerdictType: verdict,
+        error: null,
+      }));
+    }
+  }, [state.currentMovie, state.user]);
+
+  const sendVerificationEmail = useCallback(async () => {
+    if (!state.userEmail.trim()) {
+      setState(prev => ({
+        ...prev,
+        error: 'Please enter your email address.',
+      }));
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(state.userEmail)) {
+      setState(prev => ({
+        ...prev,
+        error: 'Please enter a valid email address.',
+      }));
+      return;
+    }
+
+    // Check if user has already judged this movie with this email
+    if (state.currentMovie) {
+      try {
+        const hasJudged = await hasUserAlreadyJudged(state.userEmail, state.currentMovie.id);
+        if (hasJudged) {
+          setState(prev => ({
+            ...prev,
+            error: 'You have already submitted a verdict for this movie with this email.',
+            showEmailPrompt: false,
+            pendingVerdictType: null,
+          }));
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking user verdict:', error);
+      }
+    }
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: state.userEmail,
+        options: {
+          shouldCreateUser: true,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setState(prev => ({
+        ...prev,
+        isEmailVerificationSent: true,
+        error: null,
+      }));
     } catch (error) {
       setState(prev => ({
         ...prev,
-        isSubmittingVerdict: false,
-        error: error instanceof Error ? error.message : 'Failed to submit verdict. Please try again.',
+        error: error instanceof Error ? error.message : 'Failed to send verification email.',
       }));
     }
-  }, [state.currentMovie, state.user, state.hasAlreadyJudged]);
+  }, [state.userEmail, state.currentMovie]);
 
   const handleMoodChange = useCallback((mood: string) => {
     setState(prev => ({
@@ -264,7 +386,7 @@ export const useMovieJudge = () => {
   }, []);
 
   const resetPanel = useCallback(() => {
-    setState({
+    setState(prev => ({
       searchQuery: '',
       verdict: null,
       selectedMood: 'Friday Night Laughs',
@@ -277,7 +399,9 @@ export const useMovieJudge = () => {
       isEmailVerificationSent: false,
       userVerdict: null,
       hasAlreadyJudged: false,
-    });
+      showEmailPrompt: false,
+      pendingVerdictType: null,
+    }));
     
     // Clear localStorage
     localStorage.removeItem(STORAGE_KEYS.SEARCH_QUERY);
@@ -299,7 +423,8 @@ export const useMovieJudge = () => {
       if (randomMovie) {
         const movieVerdict = isMovieCinema(randomMovie) ? 'cinema' : 'not-cinema';
         
-        setState({
+        setState(prev => ({
+          ...prev,
           searchQuery: randomMovie.title,
           verdict: movieVerdict,
           currentMovie: randomMovie,
@@ -309,7 +434,9 @@ export const useMovieJudge = () => {
           isSubmittingVerdict: false,
           hasAlreadyJudged: false,
           userVerdict: null,
-        });
+          showEmailPrompt: false,
+          pendingVerdictType: null,
+        }));
       } else {
         throw new Error('Failed to get random movie');
       }
@@ -364,50 +491,6 @@ export const useMovieJudge = () => {
     }));
   }, []);
 
-  const sendVerificationEmail = useCallback(async () => {
-    if (!state.userEmail.trim()) {
-      setState(prev => ({
-        ...prev,
-        error: 'Please enter your email address.',
-      }));
-      return;
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(state.userEmail)) {
-      setState(prev => ({
-        ...prev,
-        error: 'Please enter a valid email address.',
-      }));
-      return;
-    }
-
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: state.userEmail,
-        options: {
-          shouldCreateUser: true,
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      setState(prev => ({
-        ...prev,
-        isEmailVerificationSent: true,
-        error: null,
-      }));
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: error instanceof Error ? error.message : 'Failed to send verification email.',
-      }));
-    }
-  }, [state.userEmail]);
-
   const signOut = useCallback(async () => {
     try {
       await supabase.auth.signOut();
@@ -418,6 +501,8 @@ export const useMovieJudge = () => {
         isEmailVerificationSent: false,
         userVerdict: null,
         hasAlreadyJudged: false,
+        showEmailPrompt: false,
+        pendingVerdictType: null,
         error: null,
       }));
       localStorage.removeItem(STORAGE_KEYS.USER_EMAIL);
