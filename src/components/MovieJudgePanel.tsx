@@ -153,7 +153,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
           )}
 
           {/* Manual Verdict Buttons */}
-          {movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && (
+          {movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && !movieJudge.currentMovie && (
             <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-6">
               <h4 className="text-lg font-medium font-space-grotesk mb-4 text-[#00E0FF] text-center">
                 Your Verdict on "{movieJudge.searchQuery}"
@@ -161,17 +161,37 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               <div className="flex gap-3">
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('not-cinema')}
-                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 hover:scale-105 shadow-lg"
+                  disabled={movieJudge.isSubmittingVerdict}
+                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  <XCircle className="w-5 h-5" />
-                  <span className="font-medium">Not Cinema</span>
+                  {movieJudge.isSubmittingVerdict ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
+                      <span className="font-medium">Recording...</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-5 h-5" />
+                      <span className="font-medium">Not Cinema</span>
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('cinema')}
-                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 hover:scale-105 shadow-lg"
+                  disabled={movieJudge.isSubmittingVerdict}
+                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  <CheckCircle className="w-5 h-5" />
-                  <span className="font-medium">Cinema</span>
+                  {movieJudge.isSubmittingVerdict ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
+                      <span className="font-medium">Recording...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      <span className="font-medium">Cinema</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -311,7 +331,7 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
           )}
 
           {/* Manual Verdict Buttons */}
-          {movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && (
+          {movieJudge.searchQuery && !movieJudge.verdict && !movieJudge.isLoading && !movieJudge.currentMovie && (
             <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-4">
               <h4 className="text-base font-medium font-space-grotesk mb-3 text-[#00E0FF] text-center">
                 Your Verdict on "{movieJudge.searchQuery}"
@@ -319,17 +339,37 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               <div className="flex gap-2">
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('not-cinema')}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg"
+                  disabled={movieJudge.isSubmittingVerdict}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <XCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">Not Cinema</span>
+                  {movieJudge.isSubmittingVerdict ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm font-medium">Recording...</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">Not Cinema</span>
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('cinema')}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg"
+                  disabled={movieJudge.isSubmittingVerdict}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <CheckCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">Cinema</span>
+                  {movieJudge.isSubmittingVerdict ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm font-medium">Recording...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">Cinema</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { findMovieByTitle, isMovieCinema, movies } from '../data/movies';
+import { findMovieByTitle, isMovieCinema, getRandomMovie, submitMovieVerdict, type Movie } from '../data/movies';
 
 export interface MovieJudgeState {
   searchQuery: string;
@@ -7,12 +7,14 @@ export interface MovieJudgeState {
   selectedMood: string;
   isLoading: boolean;
   error: string | null;
+  currentMovie: Movie | null;
+  isSubmittingVerdict: boolean;
 }
 
 export interface MovieJudgeActions {
   handleSearchChange: (value: string) => void;
   handleSearch: () => void;
-  handleVerdictSubmit: (verdict: 'cinema' | 'not-cinema') => void;
+  handleVerdictSubmit: (verdict: 'cinema' | 'not-cinema') => Promise<void>;
   handleMoodChange: (mood: string) => void;
   resetPanel: () => void;
   randomizeSelection: () => void;
@@ -40,6 +42,8 @@ export const useMovieJudge = () => {
     selectedMood: localStorage.getItem(STORAGE_KEYS.SELECTED_MOOD) || 'Friday Night Laughs',
     isLoading: false,
     error: null,
+    currentMovie: null,
+    isSubmittingVerdict: false,
   }));
 
   // Persist state changes to localStorage
@@ -69,10 +73,12 @@ export const useMovieJudge = () => {
       ...prev,
       searchQuery: value,
       error: null,
+      verdict: null,
+      currentMovie: null,
     }));
   }, []);
 
-  const handleSearch = useCallback(() => {
+  const handleSearch = useCallback(async () => {
     if (!state.searchQuery.trim()) {
       setState(prev => ({
         ...prev,
@@ -84,13 +90,14 @@ export const useMovieJudge = () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const foundMovie = findMovieByTitle(state.searchQuery.trim());
+      const foundMovie = await findMovieByTitle(state.searchQuery.trim());
       
       if (foundMovie) {
         const movieVerdict = isMovieCinema(foundMovie) ? 'cinema' : 'not-cinema';
         setState(prev => ({
           ...prev,
           verdict: movieVerdict,
+          currentMovie: foundMovie,
           isLoading: false,
         }));
       } else {
@@ -98,6 +105,7 @@ export const useMovieJudge = () => {
         setState(prev => ({
           ...prev,
           verdict: null,
+          currentMovie: null,
           isLoading: false,
           error: 'Movie not found in our database. You can still judge it!',
         }));
@@ -111,13 +119,41 @@ export const useMovieJudge = () => {
     }
   }, [state.searchQuery]);
 
-  const handleVerdictSubmit = useCallback((verdict: 'cinema' | 'not-cinema') => {
-    setState(prev => ({
-      ...prev,
-      verdict,
-      error: null,
-    }));
-  }, []);
+  const handleVerdictSubmit = useCallback(async (verdict: 'cinema' | 'not-cinema') => {
+    if (!state.currentMovie) {
+      // For movies not in database, just set the verdict locally
+      setState(prev => ({
+        ...prev,
+        verdict,
+        error: null,
+      }));
+      return;
+    }
+
+    setState(prev => ({ ...prev, isSubmittingVerdict: true, error: null }));
+
+    try {
+      const updatedMovie = await submitMovieVerdict(state.currentMovie.id, verdict);
+      
+      if (updatedMovie) {
+        const newVerdict = isMovieCinema(updatedMovie) ? 'cinema' : 'not-cinema';
+        setState(prev => ({
+          ...prev,
+          verdict: newVerdict,
+          currentMovie: updatedMovie,
+          isSubmittingVerdict: false,
+        }));
+      } else {
+        throw new Error('Failed to update movie verdict');
+      }
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        isSubmittingVerdict: false,
+        error: 'Failed to submit verdict. Please try again.',
+      }));
+    }
+  }, [state.currentMovie]);
 
   const handleMoodChange = useCallback((mood: string) => {
     setState(prev => ({
@@ -133,6 +169,8 @@ export const useMovieJudge = () => {
       selectedMood: 'Friday Night Laughs',
       isLoading: false,
       error: null,
+      currentMovie: null,
+      isSubmittingVerdict: false,
     });
     
     // Clear localStorage
@@ -141,18 +179,35 @@ export const useMovieJudge = () => {
     localStorage.setItem(STORAGE_KEYS.SELECTED_MOOD, 'Friday Night Laughs');
   }, []);
 
-  const randomizeSelection = useCallback(() => {
-    const randomMood = DEFAULT_MOODS[Math.floor(Math.random() * DEFAULT_MOODS.length)];
-    const randomMovie = movies[Math.floor(Math.random() * movies.length)];
-    const movieVerdict = isMovieCinema(randomMovie) ? 'cinema' : 'not-cinema';
-    
-    setState({
-      searchQuery: randomMovie.title,
-      verdict: movieVerdict,
-      selectedMood: randomMood,
-      isLoading: false,
-      error: null,
-    });
+  const randomizeSelection = useCallback(async () => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      const randomMood = DEFAULT_MOODS[Math.floor(Math.random() * DEFAULT_MOODS.length)];
+      const randomMovie = await getRandomMovie();
+      
+      if (randomMovie) {
+        const movieVerdict = isMovieCinema(randomMovie) ? 'cinema' : 'not-cinema';
+        
+        setState({
+          searchQuery: randomMovie.title,
+          verdict: movieVerdict,
+          currentMovie: randomMovie,
+          selectedMood: randomMood,
+          isLoading: false,
+          error: null,
+          isSubmittingVerdict: false,
+        });
+      } else {
+        throw new Error('Failed to get random movie');
+      }
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Failed to get random movie. Please try again.',
+      }));
+    }
   }, []);
 
   const shareVerdict = useCallback(async () => {

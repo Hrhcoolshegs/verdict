@@ -1,3 +1,5 @@
+import { supabase } from '../lib/supabase';
+
 export interface Movie {
   id: number;
   title: string;
@@ -8,211 +10,139 @@ export interface Movie {
   notCinemaVotes: number;
 }
 
-export const movies: Movie[] = [
-  { id: 1, title: "The Godfather", director: "Francis Ford Coppola", year: 1972, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 12847, notCinemaVotes: 1653 },
-  { id: 2, title: "Citizen Kane", director: "Orson Welles", year: 1941, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 8934, notCinemaVotes: 1566 },
-  { id: 3, title: "Vertigo", director: "Alfred Hitchcock", year: 1958, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 9821, notCinemaVotes: 2179 },
-  { id: 4, title: "2001: A Space Odyssey", director: "Stanley Kubrick", year: 1968, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 7456, notCinemaVotes: 2344 },
-  { id: 5, title: "Tokyo Story", director: "Yasujirō Ozu", year: 1953, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4123, notCinemaVotes: 877 },
-  { id: 6, title: "The Rules of the Game", director: "Jean Renoir", year: 1939, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3567, notCinemaVotes: 933 },
-  { id: 7, title: "Sunrise", director: "F.W. Murnau", year: 1927, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2891, notCinemaVotes: 709 },
-  { id: 8, title: "8½", director: "Federico Fellini", year: 1963, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5234, notCinemaVotes: 1266 },
-  { id: 9, title: "Singin' in the Rain", director: "Gene Kelly", year: 1952, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 11567, notCinemaVotes: 2433 },
-  { id: 10, title: "The Bicycle Thieves", director: "Vittorio De Sica", year: 1948, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3789, notCinemaVotes: 1211 },
-  { id: 11, title: "Parasite", director: "Bong Joon-ho", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 18234, notCinemaVotes: 2766 },
-  { id: 12, title: "Moonlight", director: "Barry Jenkins", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 9876, notCinemaVotes: 2124 },
-  { id: 13, title: "Mad Max: Fury Road", director: "George Miller", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 15432, notCinemaVotes: 3568 },
-  { id: 14, title: "Her", director: "Spike Jonze", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 8765, notCinemaVotes: 3235 },
-  { id: 15, title: "There Will Be Blood", director: "Paul Thomas Anderson", year: 2007, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 11234, notCinemaVotes: 2766 },
-  { id: 16, title: "Mulholland Drive", director: "David Lynch", year: 2001, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 6789, notCinemaVotes: 2211 },
-  { id: 17, title: "Spirited Away", director: "Hayao Miyazaki", year: 2001, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 22456, notCinemaVotes: 3544 },
-  { id: 18, title: "Goodfellas", director: "Martin Scorsese", year: 1990, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 16789, notCinemaVotes: 4211 },
-  { id: 19, title: "Taxi Driver", director: "Martin Scorsese", year: 1976, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 13456, notCinemaVotes: 3544 },
-  { id: 20, title: "Apocalypse Now", director: "Francis Ford Coppola", year: 1979, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 10234, notCinemaVotes: 2766 },
-  { id: 21, title: "The Lighthouse", director: "Robert Eggers", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 1433 },
-  { id: 22, title: "Portrait of a Lady on Fire", director: "Céline Sciamma", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 7234, notCinemaVotes: 1266 },
-  { id: 23, title: "Roma", director: "Alfonso Cuarón", year: 2018, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 8456, notCinemaVotes: 1544 },
-  { id: 24, title: "Call Me by Your Name", director: "Luca Guadagnino", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 9123, notCinemaVotes: 2877 },
-  { id: 25, title: "La La Land", director: "Damien Chazelle", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 11567, notCinemaVotes: 4433 },
-  { id: 26, title: "Birdman", director: "Alejandro G. Iñárritu", year: 2014, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 7891, notCinemaVotes: 2109 },
-  { id: 27, title: "12 Years a Slave", director: "Steve McQueen", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 12345, notCinemaVotes: 2655 },
-  { id: 28, title: "The Tree of Life", director: "Terrence Malick", year: 2011, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3456, notCinemaVotes: 2544 },
-  { id: 29, title: "The Social Network", director: "David Fincher", year: 2010, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 14567, notCinemaVotes: 3433 },
-  { id: 30, title: "No Country for Old Men", director: "Coen Brothers", year: 2007, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 13789, notCinemaVotes: 2211 },
-  { id: 31, title: "Son of Saul", director: "László Nemes", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3234, notCinemaVotes: 766 },
-  { id: 32, title: "Amour", director: "Michael Haneke", year: 2012, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 1433 },
-  { id: 33, title: "The Master", director: "Paul Thomas Anderson", year: 2012, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5234, notCinemaVotes: 1766 },
-  { id: 34, title: "Drive", director: "Nicolas Winding Refn", year: 2011, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 8456, notCinemaVotes: 2544 },
-  { id: 35, title: "Black Swan", director: "Darren Aronofsky", year: 2010, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 9876, notCinemaVotes: 2124 },
-  { id: 36, title: "Inglourious Basterds", director: "Quentin Tarantino", year: 2009, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 15234, notCinemaVotes: 3766 },
-  { id: 37, title: "WALL-E", director: "Andrew Stanton", year: 2008, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 18456, notCinemaVotes: 2544 },
-  { id: 38, title: "The Departed", director: "Martin Scorsese", year: 2006, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 16789, notCinemaVotes: 3211 },
-  { id: 39, title: "Eternal Sunshine of the Spotless Mind", director: "Michel Gondry", year: 2004, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 11234, notCinemaVotes: 2766 },
-  { id: 40, title: "Lost in Translation", director: "Sofia Coppola", year: 2003, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 8567, notCinemaVotes: 2433 },
-  { id: 41, title: "Swiss Army Man", director: "Daniel Kwan", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3456, notCinemaVotes: 1544 },
-  { id: 42, title: "The Neon Demon", director: "Nicolas Winding Refn", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2789, notCinemaVotes: 2211 },
-  { id: 43, title: "Only God Forgives", director: "Nicolas Winding Refn", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 1567, notCinemaVotes: 3433 },
-  { id: 44, title: "Spring Breakers", director: "Harmony Korine", year: 2012, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2345, notCinemaVotes: 2655 },
-  { id: 45, title: "The Love Witch", director: "Anna Biller", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2891, notCinemaVotes: 1109 },
-  { id: 46, title: "Under the Skin", director: "Jonathan Glazer", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4123, notCinemaVotes: 1877 },
-  { id: 47, title: "Holy Motors", director: "Leos Carax", year: 2012, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2567, notCinemaVotes: 1433 },
-  { id: 48, title: "Enter the Void", director: "Gaspar Noé", year: 2009, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 1789, notCinemaVotes: 2211 },
-  { id: 49, title: "Synecdoche, New York", director: "Charlie Kaufman", year: 2008, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2456, notCinemaVotes: 1544 },
-  { id: 50, title: "I'm Not There", director: "Todd Haynes", year: 2007, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2234, notCinemaVotes: 1766 },
-  { id: 51, title: "Captain America: Civil War", director: "Russo Brothers", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 8567, notCinemaVotes: 4433 },
-  { id: 52, title: "Avengers: Endgame", director: "Russo Brothers", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 19234, notCinemaVotes: 8766 },
-  { id: 53, title: "The Dark Knight", director: "Christopher Nolan", year: 2008, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 24567, notCinemaVotes: 3433 },
-  { id: 54, title: "Inception", director: "Christopher Nolan", year: 2010, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 21234, notCinemaVotes: 3766 },
-  { id: 55, title: "Interstellar", director: "Christopher Nolan", year: 2014, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 16789, notCinemaVotes: 4211 },
-  { id: 56, title: "Dunkirk", director: "Christopher Nolan", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 12456, notCinemaVotes: 2544 },
-  { id: 57, title: "Tenet", director: "Christopher Nolan", year: 2020, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 7891, notCinemaVotes: 4109 },
-  { id: 58, title: "Blade Runner 2049", director: "Denis Villeneuve", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 14567, notCinemaVotes: 2433 },
-  { id: 59, title: "Dune", director: "Denis Villeneuve", year: 2021, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 18234, notCinemaVotes: 3766 },
-  { id: 60, title: "Arrival", director: "Denis Villeneuve", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 11567, notCinemaVotes: 2433 },
-  { id: 61, title: "The Fast and the Furious", director: "Rob Cohen", year: 2001, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 6789, notCinemaVotes: 5211 },
-  { id: 62, title: "Fast Five", director: "Justin Lin", year: 2011, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 9234, notCinemaVotes: 4766 },
-  { id: 63, title: "Furious 7", director: "James Wan", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 11456, notCinemaVotes: 6544 },
-  { id: 64, title: "The Fate of the Furious", director: "F. Gary Gray", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 7234, notCinemaVotes: 5766 },
-  { id: 65, title: "Transformers", director: "Michael Bay", year: 2007, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5678, notCinemaVotes: 6322 },
-  { id: 66, title: "Transformers: Dark of the Moon", director: "Michael Bay", year: 2011, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 6433 },
-  { id: 67, title: "Transformers: Age of Extinction", director: "Michael Bay", year: 2014, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3234, notCinemaVotes: 7766 },
-  { id: 68, title: "Transformers: The Last Knight", director: "Michael Bay", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2456, notCinemaVotes: 8544 },
-  { id: 69, title: "Batman v Superman", director: "Zack Snyder", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 6789, notCinemaVotes: 8211 },
-  { id: 70, title: "Justice League", director: "Zack Snyder", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5234, notCinemaVotes: 6766 },
-  { id: 71, title: "Suicide Squad", director: "David Ayer", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 7433 },
-  { id: 72, title: "The Mummy", director: "Alex Kurtzman", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2891, notCinemaVotes: 6109 },
-  { id: 73, title: "Dark Phoenix", director: "Simon Kinberg", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2123, notCinemaVotes: 5877 },
-  { id: 74, title: "X-Men Origins: Wolverine", director: "Gavin Hood", year: 2009, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3456, notCinemaVotes: 6544 },
-  { id: 75, title: "Green Lantern", director: "Martin Campbell", year: 2011, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2789, notCinemaVotes: 7211 },
-  { id: 76, title: "Fantastic Four", director: "Josh Trank", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 1567, notCinemaVotes: 6433 },
-  { id: 77, title: "Catwoman", director: "Pitof", year: 2004, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 1234, notCinemaVotes: 5766 },
-  { id: 78, title: "The Room", director: "Tommy Wiseau", year: 2003, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 891, notCinemaVotes: 4109 },
-  { id: 79, title: "Birdemic", director: "James Nguyen", year: 2010, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 567, notCinemaVotes: 2433 },
-  { id: 80, title: "The Happening", director: "M. Night Shyamalan", year: 2008, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 1456, notCinemaVotes: 4544 },
-  { id: 81, title: "The Last Airbender", director: "M. Night Shyamalan", year: 2010, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 1234, notCinemaVotes: 5766 },
-  { id: 82, title: "After Earth", director: "M. Night Shyamalan", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 1567, notCinemaVotes: 4433 },
-  { id: 83, title: "Cats", director: "Tom Hooper", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 678, notCinemaVotes: 4322 },
-  { id: 84, title: "Movie 43", director: "Various", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 789, notCinemaVotes: 3211 },
-  { id: 85, title: "Battlefield Earth", director: "Roger Christian", year: 2000, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 456, notCinemaVotes: 2544 },
-  { id: 86, title: "Jack and Jill", director: "Dennis Dugan", year: 2011, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 1234, notCinemaVotes: 6766 },
-  { id: 87, title: "Grown Ups 2", director: "Dennis Dugan", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 1567, notCinemaVotes: 7433 },
-  { id: 88, title: "The Ridiculous 6", director: "Frank Coraci", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 891, notCinemaVotes: 4109 },
-  { id: 89, title: "Holmes & Watson", director: "Etan Cohen", year: 2018, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 678, notCinemaVotes: 3322 },
-  { id: 90, title: "The Emoji Movie", director: "Tony Leondis", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 1123, notCinemaVotes: 5877 },
-  { id: 91, title: "Fifty Shades of Grey", director: "Sam Taylor-Johnson", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 8433 },
-  { id: 92, title: "Fifty Shades Darker", director: "James Foley", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3789, notCinemaVotes: 7211 },
-  { id: 93, title: "Fifty Shades Freed", director: "James Foley", year: 2018, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3234, notCinemaVotes: 6766 },
-  { id: 94, title: "Twilight", director: "Catherine Hardwicke", year: 2008, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 6789, notCinemaVotes: 8211 },
-  { id: 95, title: "The Twilight Saga: New Moon", director: "Chris Weitz", year: 2009, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5234, notCinemaVotes: 7766 },
-  { id: 96, title: "The Twilight Saga: Eclipse", director: "David Slade", year: 2010, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5678, notCinemaVotes: 7322 },
-  { id: 97, title: "The Twilight Saga: Breaking Dawn", director: "Bill Bannerman", year: 2011, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 6433 },
-  { id: 98, title: "Speed Racer", director: "The Wachowskis", year: 2008, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3456, notCinemaVotes: 2544 },
-  { id: 99, title: "Jupiter Ascending", director: "The Wachowskis", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2789, notCinemaVotes: 4211 },
-  { id: 100, title: "Cloud Atlas", director: "The Wachowskis", year: 2012, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 2433 },
-  { id: 101, title: "The Matrix Reloaded", director: "The Wachowskis", year: 2003, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 8234, notCinemaVotes: 3766 },
-  { id: 102, title: "The Matrix Revolutions", director: "The Wachowskis", year: 2003, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5678, notCinemaVotes: 4322 },
-  { id: 103, title: "The Matrix Resurrections", director: "Lana Wachowski", year: 2021, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4234, notCinemaVotes: 3766 },
-  { id: 104, title: "John Carter", director: "Andrew Stanton", year: 2012, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3456, notCinemaVotes: 4544 },
-  { id: 105, title: "The Lone Ranger", director: "Gore Verbinski", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2789, notCinemaVotes: 4211 },
-  { id: 106, title: "Pirates of the Caribbean: On Stranger Tides", director: "Rob Marshall", year: 2011, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 6234, notCinemaVotes: 5766 },
-  { id: 107, title: "Pirates of the Caribbean: Dead Men Tell No Tales", director: "Joachim Rønning", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 4433 },
-  { id: 108, title: "Alice in Wonderland", director: "Tim Burton", year: 2010, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 7234, notCinemaVotes: 5766 },
-  { id: 109, title: "Alice Through the Looking Glass", director: "James Bobin", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3456, notCinemaVotes: 5544 },
-  { id: 110, title: "Dumbo", director: "Tim Burton", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 4433 },
-  { id: 111, title: "The Lion King", director: "Jon Favreau", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 9234, notCinemaVotes: 5766 },
-  { id: 112, title: "Aladdin", director: "Guy Ritchie", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 8567, notCinemaVotes: 4433 },
-  { id: 113, title: "Beauty and the Beast", director: "Bill Condon", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 10234, notCinemaVotes: 3766 },
-  { id: 114, title: "The Jungle Book", director: "Jon Favreau", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 12456, notCinemaVotes: 2544 },
-  { id: 115, title: "Maleficent", director: "Robert Stromberg", year: 2014, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 6789, notCinemaVotes: 5211 },
-  { id: 116, title: "Maleficent: Mistress of Evil", director: "Joachim Rønning", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 4433 },
-  { id: 117, title: "Cinderella", director: "Kenneth Branagh", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 8234, notCinemaVotes: 3766 },
-  { id: 118, title: "The Little Mermaid", director: "Rob Marshall", year: 2023, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 7891, notCinemaVotes: 4109 },
-  { id: 119, title: "Mulan", director: "Niki Caro", year: 2020, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4234, notCinemaVotes: 5766 },
-  { id: 120, title: "Peter Pan & Wendy", director: "David Lowery", year: 2023, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3456, notCinemaVotes: 3544 },
-  { id: 121, title: "Indiana Jones and the Kingdom of the Crystal Skull", director: "Steven Spielberg", year: 2008, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5678, notCinemaVotes: 6322 },
-  { id: 122, title: "Indiana Jones and the Dial of Destiny", director: "James Mangold", year: 2023, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 6234, notCinemaVotes: 4766 },
-  { id: 123, title: "Star Wars: The Phantom Menace", director: "George Lucas", year: 1999, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 7891, notCinemaVotes: 9109 },
-  { id: 124, title: "Star Wars: Attack of the Clones", director: "George Lucas", year: 2002, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 6234, notCinemaVotes: 8766 },
-  { id: 125, title: "Star Wars: Revenge of the Sith", director: "George Lucas", year: 2005, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 11567, notCinemaVotes: 4433 },
-  { id: 126, title: "Star Wars: The Force Awakens", director: "J.J. Abrams", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 16789, notCinemaVotes: 5211 },
-  { id: 127, title: "Star Wars: The Last Jedi", director: "Rian Johnson", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 9234, notCinemaVotes: 6766 },
-  { id: 128, title: "Star Wars: The Rise of Skywalker", director: "J.J. Abrams", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 6789, notCinemaVotes: 8211 },
-  { id: 129, title: "Solo: A Star Wars Story", director: "Ron Howard", year: 2018, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5234, notCinemaVotes: 5766 },
-  { id: 130, title: "Rogue One: A Star Wars Story", director: "Gareth Edwards", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 13456, notCinemaVotes: 3544 },
-  { id: 131, title: "The Hobbit: An Unexpected Journey", director: "Peter Jackson", year: 2012, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 8234, notCinemaVotes: 6766 },
-  { id: 132, title: "The Hobbit: The Desolation of Smaug", director: "Peter Jackson", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 9567, notCinemaVotes: 6433 },
-  { id: 133, title: "The Hobbit: The Battle of Five Armies", director: "Peter Jackson", year: 2014, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 7234, notCinemaVotes: 7766 },
-  { id: 134, title: "The Lord of the Rings: The Fellowship of the Ring", director: "Peter Jackson", year: 2001, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 23456, notCinemaVotes: 2544 },
-  { id: 135, title: "The Lord of the Rings: The Two Towers", director: "Peter Jackson", year: 2002, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 22789, notCinemaVotes: 2211 },
-  { id: 136, title: "The Lord of the Rings: The Return of the King", director: "Peter Jackson", year: 2003, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 25234, notCinemaVotes: 1766 },
-  { id: 137, title: "Harry Potter and the Philosopher's Stone", director: "Chris Columbus", year: 2001, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 15678, notCinemaVotes: 4322 },
-  { id: 138, title: "Harry Potter and the Chamber of Secrets", director: "Chris Columbus", year: 2002, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 14567, notCinemaVotes: 4433 },
-  { id: 139, title: "Harry Potter and the Prisoner of Azkaban", director: "Alfonso Cuarón", year: 2004, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 17234, notCinemaVotes: 2766 },
-  { id: 140, title: "Harry Potter and the Goblet of Fire", director: "Mike Newell", year: 2005, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 16789, notCinemaVotes: 4211 },
-  { id: 141, title: "Harry Potter and the Order of the Phoenix", director: "David Yates", year: 2007, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 13456, notCinemaVotes: 4544 },
-  { id: 142, title: "Harry Potter and the Half-Blood Prince", director: "David Yates", year: 2009, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 15234, notCinemaVotes: 3766 },
-  { id: 143, title: "Harry Potter and the Deathly Hallows – Part 1", director: "David Yates", year: 2010, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 14567, notCinemaVotes: 4433 },
-  { id: 144, title: "Harry Potter and the Deathly Hallows – Part 2", director: "David Yates", year: 2011, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 18234, notCinemaVotes: 2766 },
-  { id: 145, title: "Fantastic Beasts and Where to Find Them", director: "David Yates", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 8567, notCinemaVotes: 4433 },
-  { id: 146, title: "Fantastic Beasts: The Crimes of Grindelwald", director: "David Yates", year: 2018, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4234, notCinemaVotes: 5766 },
-  { id: 147, title: "Fantastic Beasts: The Secrets of Dumbledore", director: "David Yates", year: 2022, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3456, notCinemaVotes: 4544 },
-  { id: 148, title: "The Chronicles of Narnia: The Lion, the Witch and the Wardrobe", director: "Andrew Adamson", year: 2005, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 9234, notCinemaVotes: 3766 },
-  { id: 149, title: "The Chronicles of Narnia: Prince Caspian", director: "Andrew Adamson", year: 2008, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 6789, notCinemaVotes: 4211 },
-  { id: 150, title: "The Chronicles of Narnia: The Voyage of the Dawn Treader", director: "Michael Apted", year: 2010, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 4433 },
-  { id: 151, title: "Percy Jackson & the Olympians: The Lightning Thief", director: "Chris Columbus", year: 2010, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3234, notCinemaVotes: 4766 },
-  { id: 152, title: "Percy Jackson: Sea of Monsters", director: "Thor Freudenthal", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2567, notCinemaVotes: 4433 },
-  { id: 153, title: "The Golden Compass", director: "Chris Weitz", year: 2007, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3456, notCinemaVotes: 4544 },
-  { id: 154, title: "Eragon", director: "Stefen Fangmeier", year: 2006, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 1789, notCinemaVotes: 5211 },
-  { id: 155, title: "The Mortal Instruments: City of Bones", director: "Harald Zwart", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2234, notCinemaVotes: 4766 },
-  { id: 156, title: "Beautiful Creatures", director: "Richard LaGravenese", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2891, notCinemaVotes: 4109 },
-  { id: 157, title: "The Host", director: "Andrew Niccol", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2123, notCinemaVotes: 4877 },
-  { id: 158, title: "Divergent", director: "Neil Burger", year: 2014, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5678, notCinemaVotes: 5322 },
-  { id: 159, title: "The Divergent Series: Insurgent", director: "Robert Schwentke", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4234, notCinemaVotes: 5766 },
-  { id: 160, title: "The Divergent Series: Allegiant", director: "Robert Schwentke", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2789, notCinemaVotes: 6211 },
-  { id: 161, title: "The Maze Runner", director: "Wes Ball", year: 2014, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 6234, notCinemaVotes: 4766 },
-  { id: 162, title: "Maze Runner: The Scorch Trials", director: "Wes Ball", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 4433 },
-  { id: 163, title: "Maze Runner: The Death Cure", director: "Wes Ball", year: 2018, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4234, notCinemaVotes: 3766 },
-  { id: 164, title: "The Hunger Games", director: "Gary Ross", year: 2012, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 14567, notCinemaVotes: 3433 },
-  { id: 165, title: "The Hunger Games: Catching Fire", director: "Francis Lawrence", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 17234, notCinemaVotes: 2766 },
-  { id: 166, title: "The Hunger Games: Mockingjay – Part 1", director: "Francis Lawrence", year: 2014, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 9567, notCinemaVotes: 4433 },
-  { id: 167, title: "The Hunger Games: Mockingjay – Part 2", director: "Francis Lawrence", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 10234, notCinemaVotes: 3766 },
-  { id: 168, title: "Ready Player One", director: "Steven Spielberg", year: 2018, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 8567, notCinemaVotes: 3433 },
-  { id: 169, title: "Alita: Battle Angel", director: "Robert Rodriguez", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5234, notCinemaVotes: 3766 },
-  { id: 170, title: "Ghost in the Shell", director: "Rupert Sanders", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3456, notCinemaVotes: 4544 },
-  { id: 171, title: "Valerian and the City of a Thousand Planets", director: "Luc Besson", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2789, notCinemaVotes: 3211 },
-  { id: 172, title: "Pacific Rim", director: "Guillermo del Toro", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 7234, notCinemaVotes: 3766 },
-  { id: 173, title: "Pacific Rim: Uprising", director: "Steven S. DeKnight", year: 2018, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2891, notCinemaVotes: 4109 },
-  { id: 174, title: "Godzilla", director: "Gareth Edwards", year: 2014, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5678, notCinemaVotes: 4322 },
-  { id: 175, title: "Godzilla: King of the Monsters", director: "Michael Dougherty", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3456, notCinemaVotes: 4544 },
-  { id: 176, title: "Godzilla vs. Kong", director: "Adam Wingard", year: 2021, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 3433 },
-  { id: 177, title: "Kong: Skull Island", director: "Jordan Vogt-Roberts", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 6234, notCinemaVotes: 3766 },
-  { id: 178, title: "Rampage", director: "Brad Peyton", year: 2018, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3789, notCinemaVotes: 4211 },
-  { id: 179, title: "San Andreas", director: "Brad Peyton", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4234, notCinemaVotes: 3766 },
-  { id: 180, title: "2012", director: "Roland Emmerich", year: 2009, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5678, notCinemaVotes: 6322 },
-  { id: 181, title: "The Day After Tomorrow", director: "Roland Emmerich", year: 2004, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 6789, notCinemaVotes: 5211 },
-  { id: 182, title: "Independence Day", director: "Roland Emmerich", year: 1996, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 11234, notCinemaVotes: 4766 },
-  { id: 183, title: "Independence Day: Resurgence", director: "Roland Emmerich", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2567, notCinemaVotes: 5433 },
-  { id: 184, title: "White House Down", director: "Roland Emmerich", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4234, notCinemaVotes: 4766 },
-  { id: 185, title: "Olympus Has Fallen", director: "Antoine Fuqua", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 5678, notCinemaVotes: 4322 },
-  { id: 186, title: "London Has Fallen", director: "Babak Najafi", year: 2016, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3456, notCinemaVotes: 4544 },
-  { id: 187, title: "Angel Has Fallen", director: "Ric Roman Waugh", year: 2019, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3789, notCinemaVotes: 3211 },
-  { id: 188, title: "Geostorm", director: "Dean Devlin", year: 2017, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 1567, notCinemaVotes: 4433 },
-  { id: 189, title: "Skyscraper", director: "Rawson Marshall Thurber", year: 2018, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2891, notCinemaVotes: 4109 },
-  { id: 190, title: "The Meg", director: "Jon Turteltaub", year: 2018, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 4567, notCinemaVotes: 4433 },
-  { id: 191, title: "Meg 2: The Trench", director: "Ben Wheatley", year: 2023, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2234, notCinemaVotes: 4766 },
-  { id: 192, title: "Sharknado", director: "Anthony C. Ferrante", year: 2013, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 678, notCinemaVotes: 2322 },
-  { id: 193, title: "Sharknado 2: The Second One", director: "Anthony C. Ferrante", year: 2014, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 567, notCinemaVotes: 1433 },
-  { id: 194, title: "Sharknado 3: Oh Hell No!", director: "Anthony C. Ferrante", year: 2015, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 456, notCinemaVotes: 1544 },
-  { id: 195, title: "The Asylum's Titanic II", director: "Shane Van Dyke", year: 2010, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 234, notCinemaVotes: 1766 },
-  { id: 196, title: "Mega Shark vs. Giant Octopus", director: "Jack Perez", year: 2009, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 123, notCinemaVotes: 877 },
-  { id: 197, title: "Snakes on a Plane", director: "David R. Ellis", year: 2006, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 3456, notCinemaVotes: 2544 },
-  { id: 198, title: "Anaconda", director: "Luis Llosa", year: 1997, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2789, notCinemaVotes: 3211 },
-  { id: 199, title: "Anacondas: The Hunt for the Blood Orchid", director: "Dwight H. Little", year: 2004, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 1567, notCinemaVotes: 2433 },
-  { id: 200, title: "Lake Placid", director: "Steve Miner", year: 1999, poster: "https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg", cinemaVotes: 2891, notCinemaVotes: 2109 }
-];
+// Transform database row to Movie interface
+const transformDbRowToMovie = (row: any): Movie => ({
+  id: row.id,
+  title: row.title,
+  director: row.director,
+  year: row.year,
+  poster: row.poster,
+  cinemaVotes: row.cinema_votes,
+  notCinemaVotes: row.not_cinema_votes,
+});
+
+// Fetch all movies from Supabase
+export const fetchMovies = async (): Promise<Movie[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('movies')
+      .select('*')
+      .order('id');
+
+    if (error) {
+      console.error('Error fetching movies:', error);
+      throw error;
+    }
+
+    return data?.map(transformDbRowToMovie) || [];
+  } catch (error) {
+    console.error('Failed to fetch movies:', error);
+    return [];
+  }
+};
+
+// Fetch a single movie by ID
+export const fetchMovieById = async (id: number): Promise<Movie | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('movies')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching movie by ID:', error);
+      return null;
+    }
+
+    return data ? transformDbRowToMovie(data) : null;
+  } catch (error) {
+    console.error('Failed to fetch movie by ID:', error);
+    return null;
+  }
+};
+
+// Search for movies by title
+export const searchMoviesByTitle = async (title: string): Promise<Movie[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('movies')
+      .select('*')
+      .ilike('title', `%${title}%`)
+      .order('cinema_votes', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      console.error('Error searching movies:', error);
+      throw error;
+    }
+
+    return data?.map(transformDbRowToMovie) || [];
+  } catch (error) {
+    console.error('Failed to search movies:', error);
+    return [];
+  }
+};
+
+// Submit a verdict for a movie
+export const submitMovieVerdict = async (movieId: number, verdict: 'cinema' | 'not-cinema'): Promise<Movie | null> => {
+  try {
+    // Use the database function to safely increment the verdict count
+    const { error: functionError } = await supabase.rpc('increment_movie_verdict', {
+      movie_id: movieId,
+      verdict_type: verdict
+    });
+
+    if (functionError) {
+      console.error('Error submitting verdict:', functionError);
+      throw functionError;
+    }
+
+    // Fetch and return the updated movie data
+    return await fetchMovieById(movieId);
+  } catch (error) {
+    console.error('Failed to submit verdict:', error);
+    throw error;
+  }
+};
+
+// Get a random movie
+export const getRandomMovie = async (): Promise<Movie | null> => {
+  try {
+    // Get total count first
+    const { count, error: countError } = await supabase
+      .from('movies')
+      .select('*', { count: 'exact', head: true });
+
+    if (countError || !count) {
+      console.error('Error getting movie count:', countError);
+      return null;
+    }
+
+    // Get a random offset
+    const randomOffset = Math.floor(Math.random() * count);
+
+    const { data, error } = await supabase
+      .from('movies')
+      .select('*')
+      .range(randomOffset, randomOffset)
+      .single();
+
+    if (error) {
+      console.error('Error fetching random movie:', error);
+      return null;
+    }
+
+    return data ? transformDbRowToMovie(data) : null;
+  } catch (error) {
+    console.error('Failed to get random movie:', error);
+    return null;
+  }
+};
 
 export const calculateCinemaPercentage = (movie: Movie): number => {
   const totalVotes = movie.cinemaVotes + movie.notCinemaVotes;
+  if (totalVotes === 0) return 0;
   return Math.round((movie.cinemaVotes / totalVotes) * 100);
 };
 
@@ -220,7 +150,8 @@ export const isMovieCinema = (movie: Movie): boolean => {
   return calculateCinemaPercentage(movie) >= 79;
 };
 
-export const findMovieByTitle = (title: string): Movie | undefined => {
+export const findMovieByTitle = async (title: string): Promise<Movie | undefined> => {
+  const movies = await searchMoviesByTitle(title);
   return movies.find(movie => 
     movie.title.toLowerCase().includes(title.toLowerCase()) ||
     title.toLowerCase().includes(movie.title.toLowerCase())

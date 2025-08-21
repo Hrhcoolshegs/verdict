@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, X, Trophy, Medal, Award, TrendingUp, TrendingDown, Users, Star } from 'lucide-react';
-import { movies, calculateCinemaPercentage, isMovieCinema, type Movie } from '../data/movies';
+import { fetchMovies, calculateCinemaPercentage, isMovieCinema, submitMovieVerdict, type Movie } from '../data/movies';
 
 // Lazy loading image component
 const LazyImage: React.FC<{ src: string; alt: string; className: string }> = ({ src, alt, className }) => {
@@ -52,11 +52,73 @@ const CommunityPoll: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'cinema' | 'not-cinema'>('all');
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmittingVerdict, setIsSubmittingVerdict] = useState(false);
+  const [verdictFeedback, setVerdictFeedback] = useState<{ movieId: number; message: string } | null>(null);
   const moviesPerPage = 12;
 
-  const handleVote = (movieId: number, vote: 'cinema' | 'not-cinema') => {
-    console.log(`Voted ${vote} for ${movies.find(m => m.id === movieId)?.title}`);
-    setCurrentIndex((prev) => (prev + 1) % movies.length);
+  // Load movies on component mount
+  React.useEffect(() => {
+    const loadMovies = async () => {
+      try {
+        setIsLoading(true);
+        const fetchedMovies = await fetchMovies();
+        setMovies(fetchedMovies);
+      } catch (error) {
+        console.error('Failed to load movies:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMovies();
+  }, []);
+
+  // Clear verdict feedback after 3 seconds
+  React.useEffect(() => {
+    if (verdictFeedback) {
+      const timer = setTimeout(() => {
+        setVerdictFeedback(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [verdictFeedback]);
+
+  const handleVote = async (movieId: number, verdict: 'cinema' | 'not-cinema') => {
+    if (isSubmittingVerdict) return;
+
+    try {
+      setIsSubmittingVerdict(true);
+      const updatedMovie = await submitMovieVerdict(movieId, verdict);
+      
+      if (updatedMovie) {
+        // Update the movie in the local state
+        setMovies(prevMovies => 
+          prevMovies.map(movie => 
+            movie.id === movieId ? updatedMovie : movie
+          )
+        );
+
+        // Show feedback
+        const verdictText = verdict === 'cinema' ? 'Cinema' : 'Not Cinema';
+        setVerdictFeedback({
+          movieId,
+          message: `Verdict recorded: ${verdictText}!`
+        });
+
+        // Move to next movie
+        setCurrentIndex((prev) => (prev + 1) % movies.length);
+      }
+    } catch (error) {
+      console.error('Failed to submit verdict:', error);
+      setVerdictFeedback({
+        movieId,
+        message: 'Failed to record verdict. Please try again.'
+      });
+    } finally {
+      setIsSubmittingVerdict(false);
+    }
   };
 
   const sortedMovies = [...movies].sort((a, b) => {
@@ -77,9 +139,37 @@ const CommunityPoll: React.FC = () => {
 
   const totalPages = Math.ceil(filteredMovies.length / moviesPerPage);
 
-  const handleVoteAction = (movieId: number, voteType: 'cinema' | 'not-cinema') => {
-    // In a real app, this would make an API call
-    console.log(`Voted ${voteType} for movie ${movieId}`);
+  const handleVoteAction = async (movieId: number, verdictType: 'cinema' | 'not-cinema') => {
+    if (isSubmittingVerdict) return;
+
+    try {
+      setIsSubmittingVerdict(true);
+      const updatedMovie = await submitMovieVerdict(movieId, verdictType);
+      
+      if (updatedMovie) {
+        // Update the movie in the local state
+        setMovies(prevMovies => 
+          prevMovies.map(movie => 
+            movie.id === movieId ? updatedMovie : movie
+          )
+        );
+
+        // Show feedback
+        const verdictText = verdictType === 'cinema' ? 'Cinema' : 'Not Cinema';
+        setVerdictFeedback({
+          movieId,
+          message: `Verdict recorded: ${verdictText}!`
+        });
+      }
+    } catch (error) {
+      console.error('Failed to submit verdict:', error);
+      setVerdictFeedback({
+        movieId,
+        message: 'Failed to record verdict. Please try again.'
+      });
+    } finally {
+      setIsSubmittingVerdict(false);
+    }
   };
 
   const getStats = () => {
@@ -94,6 +184,19 @@ const CommunityPoll: React.FC = () => {
   };
 
   const stats = getStats();
+
+  if (isLoading) {
+    return (
+      <section className="py-24 px-6" data-section="verdict">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-[#00E0FF] border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+            <p className="text-xl text-[#A6A9B3]">Loading cinema verdicts...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const getRankIcon = (index: number) => {
     if (index === 0) return <Trophy className="w-5 h-5 text-[#00E0FF]" />;
@@ -214,18 +317,37 @@ const CommunityPoll: React.FC = () => {
             {/* Vote Controls */}
             <div className="flex justify-center gap-6 sm:gap-8 mt-6 sm:mt-8">
               <button
-                onClick={() => handleVote(movies[currentIndex].id, 'not-cinema')}
-                className="w-12 h-12 sm:w-16 sm:h-16 bg-[#00BFFF] hover:bg-[#0099CC] text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-opacity-50"
+                onClick={() => handleVote(movies[currentIndex]?.id, 'not-cinema')}
+                disabled={isSubmittingVerdict || !movies[currentIndex]}
+                className="w-12 h-12 sm:w-16 sm:h-16 bg-[#00BFFF] hover:bg-[#0099CC] text-white rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                <X className="w-6 h-6 sm:w-8 sm:h-8" />
+                {isSubmittingVerdict ? (
+                  <div className="w-4 h-4 sm:w-6 sm:h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <X className="w-6 h-6 sm:w-8 sm:h-8" />
+                )}
               </button>
               <button
-                onClick={() => handleVote(movies[currentIndex].id, 'cinema')}
-                className="w-12 h-12 sm:w-16 sm:h-16 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg focus:outline-none focus:ring-2 focus:ring-[#00E0FF] focus:ring-opacity-50"
+                onClick={() => handleVote(movies[currentIndex]?.id, 'cinema')}
+                disabled={isSubmittingVerdict || !movies[currentIndex]}
+                className="w-12 h-12 sm:w-16 sm:h-16 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg focus:outline-none focus:ring-2 focus:ring-[#00E0FF] focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                <span className="text-xl sm:text-2xl font-bold">✓</span>
+                {isSubmittingVerdict ? (
+                  <div className="w-4 h-4 sm:w-6 sm:h-6 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <span className="text-xl sm:text-2xl font-bold">✓</span>
+                )}
               </button>
             </div>
+
+            {/* Verdict Feedback */}
+            {verdictFeedback && verdictFeedback.movieId === movies[currentIndex]?.id && (
+              <div className="text-center mt-4">
+                <div className="inline-block px-4 py-2 bg-[rgba(0,224,255,0.1)] border border-[rgba(0,224,255,0.3)] rounded-lg">
+                  <p className="text-sm text-[#00E0FF] font-medium">{verdictFeedback.message}</p>
+                </div>
+              </div>
+            )}
 
             <div className="text-center mt-4 space-x-4 text-sm sm:text-base">
               <span className="text-[#FFD700]">✗ Not Cinema</span>
@@ -335,17 +457,42 @@ const CommunityPoll: React.FC = () => {
                         <div className="flex gap-2 text-xs sm:text-sm">
                           <button
                             onClick={() => handleVoteAction(movie.id, 'cinema')}
-                            className="flex-1 py-2 px-2 sm:px-3 bg-[rgba(0,224,255,0.1)] hover:bg-[rgba(0,224,255,0.2)] text-[#00E0FF] rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#00E0FF] focus:ring-opacity-50"
+                            disabled={isSubmittingVerdict}
+                            className="flex-1 py-2 px-2 sm:px-3 bg-[rgba(0,224,255,0.1)] hover:bg-[rgba(0,224,255,0.2)] text-[#00E0FF] rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#00E0FF] focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative"
                           >
-                            Cinema
+                            {isSubmittingVerdict && verdictFeedback?.movieId === movie.id ? (
+                              <div className="flex items-center justify-center">
+                                <div className="w-3 h-3 border border-[#00E0FF] border-t-transparent rounded-full animate-spin mr-2" />
+                                Cinema
+                              </div>
+                            ) : (
+                              'Cinema'
+                            )}
                           </button>
                           <button
                             onClick={() => handleVoteAction(movie.id, 'not-cinema')}
-                            className="flex-1 py-2 px-2 sm:px-3 bg-[rgba(255,215,0,0.1)] hover:bg-[rgba(255,215,0,0.2)] text-[#FFD700] rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:ring-opacity-50"
+                            disabled={isSubmittingVerdict}
+                            className="flex-1 py-2 px-2 sm:px-3 bg-[rgba(255,215,0,0.1)] hover:bg-[rgba(255,215,0,0.2)] text-[#FFD700] rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFD700] focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative"
                           >
-                            Not Cinema
+                            {isSubmittingVerdict && verdictFeedback?.movieId === movie.id ? (
+                              <div className="flex items-center justify-center">
+                                <div className="w-3 h-3 border border-[#FFD700] border-t-transparent rounded-full animate-spin mr-2" />
+                                Not Cinema
+                              </div>
+                            ) : (
+                              'Not Cinema'
+                            )}
                           </button>
                         </div>
+
+                        {/* Individual movie verdict feedback */}
+                        {verdictFeedback && verdictFeedback.movieId === movie.id && (
+                          <div className="mt-2 text-center">
+                            <div className="inline-block px-2 py-1 bg-[rgba(0,224,255,0.1)] border border-[rgba(0,224,255,0.3)] rounded text-xs text-[#00E0FF]">
+                              {verdictFeedback.message}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
