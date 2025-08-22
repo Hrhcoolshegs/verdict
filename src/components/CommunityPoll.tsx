@@ -327,11 +327,6 @@ const CommunityPoll: React.FC = () => {
         });
 
         setIsEmailVerificationSent(true);
-        
-        // Move to next movie after a short delay
-        setTimeout(() => {
-          setCurrentIndex((prev) => (prev + 1) % movies.length);
-        }, 1500);
       } else {
         setVerdictFeedback({
           movieId: showEmailPrompt.movieId,
