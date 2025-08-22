@@ -66,6 +66,19 @@ const CommunityPoll: React.FC = () => {
   const [isEmailVerificationSent, setIsEmailVerificationSent] = useState(false);
   const [isSubmittingEmailVerdict, setIsSubmittingEmailVerdict] = useState(false);
 
+  // New state for improved swipe functionality
+  const [isSwiping, setIsSwiping] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentX, setCurrentX] = useState(0);
+  const [cardTransform, setCardTransform] = useState('');
+  const [cardTransition, setCardTransition] = useState('');
+  
+  // New state for pending votes and non-blocking email prompt
+  const [pendingVotes, setPendingVotes] = useState<{ movieId: number; verdict: 'cinema' | 'not-cinema' }[]>([]);
+  const [showNonBlockingEmailPrompt, setShowNonBlockingEmailPrompt] = useState(false);
+
+  const SWIPE_THRESHOLD = typeof window !== 'undefined' ? window.innerWidth / 4 : 100;
+
   // Load movies on component mount
   React.useEffect(() => {
     const loadMovies = async () => {
@@ -176,12 +189,12 @@ const CommunityPoll: React.FC = () => {
     }
   }, [verdictFeedback]);
 
-  const handleVote = async (movieId: number, verdict: 'cinema' | 'not-cinema') => {
+  // New function to process votes (both swipe and button clicks)
+  const processVote = async (movieId: number, verdict: 'cinema' | 'not-cinema') => {
     if (isSubmittingVerdict) return;
 
-    // If user is authenticated, proceed with vote
+    // If user is authenticated, record vote immediately
     if (user?.email) {
-      // Check if user has already judged this movie
       if (userVerdicts[movieId]) {
         setVerdictFeedback({
           movieId,
@@ -214,9 +227,6 @@ const CommunityPoll: React.FC = () => {
             movieId,
             message: `Verdict recorded: ${verdictText}!`
           });
-
-          // Move to next movie
-          setCurrentIndex((prev) => (prev + 1) % movies.length);
         } else {
           setVerdictFeedback({
             movieId,
@@ -233,9 +243,15 @@ const CommunityPoll: React.FC = () => {
         setIsSubmittingVerdict(false);
       }
     } else {
-      // User is not authenticated - show email prompt
-      setShowEmailPrompt({ movieId, verdict });
-      return;
+      // User is not authenticated - add to pending votes and show non-blocking prompt
+      setPendingVotes(prev => {
+        const existing = prev.find(vote => vote.movieId === movieId);
+        if (existing) {
+          return prev.map(vote => vote.movieId === movieId ? { movieId, verdict } : vote);
+        }
+        return [...prev, { movieId, verdict }];
+      });
+      setShowNonBlockingEmailPrompt(true);
     }
   };
 
