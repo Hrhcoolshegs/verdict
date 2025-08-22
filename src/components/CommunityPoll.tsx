@@ -426,6 +426,16 @@ const CommunityPoll: React.FC = () => {
     }
   };
 
+  const handleVote = (movieId: number, verdict: 'cinema' | 'not-cinema') => {
+    if (verdict === 'cinema') {
+      // Swipe right - vote cinema
+      processVote(movieId, 'cinema');
+    } else {
+      // Swipe left - vote not cinema
+      processVote(movieId, 'not-cinema');
+    }
+  };
+
   if (isLoading) {
     return (
       <section className="py-24 px-6" data-section="verdict">
@@ -541,7 +551,6 @@ const CommunityPoll: React.FC = () => {
   return (
     <section className="py-24 px-6" data-section="verdict">
       <EmailPromptModal />
-      <NonBlockingEmailPrompt />
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-6xl font-bold font-space-grotesk mb-6 text-[#00E0FF]">
@@ -588,32 +597,69 @@ const CommunityPoll: React.FC = () => {
                 const isActive = offset === 0;
                 
                 const handleTouchStart = (e: React.TouchEvent) => {
+                  if (isSubmittingVerdict) return;
+                  
                   const touch = e.touches[0];
-                  (e.currentTarget as HTMLElement).dataset.touchStartX = touch.clientX.toString();
+                  setStartX(touch.clientX);
+                  setCurrentX(touch.clientX);
+                  setIsSwiping(true);
+                  setCardTransition('none');
+                };
+                
+                const handleTouchMove = (e: React.TouchEvent) => {
+                  if (!isSwiping || isSubmittingVerdict) return;
+                  
+                  const touch = e.touches[0];
+                  const deltaX = touch.clientX - startX;
+                  const rotation = (deltaX / window.innerWidth) * 20; // Max 20 degrees rotation
+                  
+                  setCurrentX(touch.clientX);
+                  setCardTransform(`translateX(${deltaX}px) rotate(${rotation}deg)`);
                 };
                 
                 const handleTouchEnd = (e: React.TouchEvent) => {
-                  const touch = e.changedTouches[0];
-                  const startX = parseFloat((e.currentTarget as HTMLElement).dataset.touchStartX || '0');
-                  const endX = touch.clientX;
-                  const diff = startX - endX;
+                  if (!isSwiping || isSubmittingVerdict) return;
                   
-                  if (Math.abs(diff) > 50) { // Minimum swipe distance
-                    if (diff > 0) {
-                      // Swipe left - vote not cinema
-                      handleVote(movies[currentIndex].id, 'not-cinema');
-                    } else {
-                      // Swipe right - vote cinema
-                      handleVote(movies[currentIndex].id, 'cinema');
-                    }
+                  setIsSwiping(false);
+                  setCardTransition('transform 0.3s ease-out');
+                  
+                  const deltaX = currentX - startX;
+                  
+                  if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
+                    const verdict = deltaX > 0 ? 'cinema' : 'not-cinema';
+                    
+                    // Animate card off screen
+                    const offScreenX = Math.sign(deltaX) * window.innerWidth;
+                    const offScreenRotation = Math.sign(deltaX) * 30;
+                    setCardTransform(`translateX(${offScreenX}px) rotate(${offScreenRotation}deg)`);
+                    
+                    // Process the vote
+                    processVote(movies[currentIndex].id, verdict);
+                    
+                    // Move to next movie after animation
+                    setTimeout(() => {
+                      setCardTransform('');
+                      setCardTransition('');
+                      setCurrentIndex((prev) => (prev + 1) % movies.length);
+                    }, 300);
+                  } else {
+                    // Snap back to center
+                    setCardTransform('');
                   }
+                  
+                  // Reset touch coordinates
+                  setTimeout(() => {
+                    setStartX(0);
+                    setCurrentX(0);
+                  }, 300);
                 };
                 
                 return (
                   <div
                     key={movie.id}
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
+                    onTouchStart={isActive ? handleTouchStart : undefined}
+                    onTouchMove={isActive ? handleTouchMove : undefined}
+                    onTouchEnd={isActive ? handleTouchEnd : undefined}
                     className={`absolute inset-0 transition-all duration-300 transform ${
                       isActive 
                         ? 'scale-100 z-20 rotate-0' 
@@ -623,6 +669,10 @@ const CommunityPoll: React.FC = () => {
                             ? 'scale-95 z-10 -rotate-2 -translate-x-4'
                             : 'scale-90 z-0 opacity-0'
                     }`}
+                    style={isActive && (cardTransform || cardTransition) ? {
+                      transform: cardTransform || undefined,
+                      transition: cardTransition || undefined
+                    } : undefined}
                   >
                     <div className="bg-[rgba(16,18,24,0.8)] backdrop-blur-xl border border-[rgba(255,215,0,0.1)] rounded-2xl overflow-hidden shadow-2xl h-full cursor-pointer hover:border-[#FFD700] transition-colors flex flex-col">
                       <div className="flex-grow overflow-hidden">
