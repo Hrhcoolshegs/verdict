@@ -327,6 +327,11 @@ const CommunityPoll: React.FC = () => {
         });
 
         setIsEmailVerificationSent(true);
+        
+        // Move to next movie after a short delay
+        setTimeout(() => {
+          setCurrentIndex((prev) => (prev + 1) % movies.length);
+        }, 1500);
       } else {
         setVerdictFeedback({
           movieId: showEmailPrompt.movieId,
@@ -536,6 +541,7 @@ const CommunityPoll: React.FC = () => {
   return (
     <section className="py-24 px-6" data-section="verdict">
       <EmailPromptModal />
+      <NonBlockingEmailPrompt />
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-6xl font-bold font-space-grotesk mb-6 text-[#00E0FF]">
