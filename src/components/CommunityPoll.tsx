@@ -51,6 +51,8 @@ const CommunityPoll: React.FC = () => {
 
   const [gestureRecognized, setGestureRecognized] = useState(false);
   const [hapticFeedback, setHapticFeedback] = useState(false);
+  const [swipeVelocity, setSwipeVelocity] = useState(0);
+  const [lastTouchTime, setLastTouchTime] = useState(0);
   const [lastTouchX, setLastTouchX] = useState(0);
   // Load movies on component mount
   React.useEffect(() => {
@@ -664,7 +666,6 @@ const CommunityPoll: React.FC = () => {
                   setIsSwiping(true);
                   setCardTransition('none');
                   setLastTouchTime(Date.now());
-                  setLastTouchX(touch.clientX);
                   setSwipeVelocity(0);
                   setSwipeDirection(null);
                   setIsSwipeCommitted(false);
@@ -677,11 +678,12 @@ const CommunityPoll: React.FC = () => {
                   const deltaX = touch.clientX - startX;
                   const now = Date.now();
                   const timeDelta = now - lastTouchTime;
-                  const velocity = Math.abs(touch.clientX - lastTouchX) / timeDelta;
                   
-                  setSwipeVelocity(velocity);
-                  setLastTouchTime(now);
-                  setLastTouchX(touch.clientX);
+                  // Calculate velocity for physics-based feedback
+                  if (timeDelta > 0) {
+                    const velocity = Math.abs(deltaX) / timeDelta;
+                    setSwipeVelocity(velocity);
+                  }
                   
                   // Enhanced rotation with physics
                   const maxRotation = 25;
@@ -713,19 +715,7 @@ const CommunityPoll: React.FC = () => {
                     cardElement.style.backgroundColor = '';
                   }
                   
-                  const progress = Math.min(Math.abs(deltaX) / SWIPE_THRESHOLD, 1);
-                  
-                  // Trigger gesture recognition feedback
-                  if (progress > 0.3 && !gestureRecognized) {
-                    setGestureRecognized(true);
-                    setTimeout(() => setGestureRecognized(false), 300);
-                  }
-                  
-                  // Trigger haptic feedback at threshold
-                  if (progress > 0.7 && !hapticFeedback) {
-                    setHapticFeedback(true);
-                    setTimeout(() => setHapticFeedback(false), 200);
-                  }
+                  setLastTouchTime(now);
                 };
                 
                 const handleTouchEnd = (e: React.TouchEvent) => {
@@ -985,13 +975,27 @@ const CommunityPoll: React.FC = () => {
               </p>
             </div>
           </div>
+              {isSwipeActive && (
+                <>
+                  <div className={`swipe-indicator cinema ${swipeDirection === 'right' && swipeProgress > 0.3 ? 'active' : ''}`}>
+                    <CheckCircle className="w-6 h-6 text-[#00E0FF]" />
+                  </div>
+                  <div className={`swipe-indicator not-cinema ${swipeDirection === 'left' && swipeProgress > 0.3 ? 'active' : ''}`}>
+                    <XCircle className="w-6 h-6 text-[#FFD700]" />
+                  </div>
+                </>
+              )}
+              
+              {/* Swipe Feedback Overlay */}
+              <div className="swipe-feedback-overlay" />
+              
 
           {/* Cinema Billboard */}
           <div className="bg-[rgba(16,18,24,0.6)] backdrop-blur-cinema border border-[rgba(255,215,0,0.1)] rounded-2xl p-4 sm:p-6 lg:p-8 film-grain cinema-border">
             <div className="flex items-center justify-between mb-6">
               <h3 className="cinema-title text-xl sm:text-2xl text-[#00E0FF] text-shadow-cinema">
                 Cinema Billboard
-              </h3>
+                    className="w-full h-80 object-cover rounded-xl shadow-lg film-strip-border aspect-185 cinema-card-enhanced"
               
               {/* Category Filter */}
               <div className="flex bg-[rgba(16,18,24,0.8)] rounded-lg p-1 text-xs sm:text-sm">
@@ -1163,7 +1167,7 @@ const CommunityPoll: React.FC = () => {
                           <div className="mt-2 text-center">
                             <div className="inline-block px-2 py-1 bg-[rgba(0,224,255,0.1)] border border-[rgba(0,224,255,0.3)] rounded text-xs text-[#00E0FF] cinema-glow">
                               {verdictFeedback.message}
-                            </div>
+                    className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors rounded-xl flex items-center justify-center opacity-0 hover:opacity-100 cinema-button-enhanced"
                           </div>
                         )}
                       </div>
