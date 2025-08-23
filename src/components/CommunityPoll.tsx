@@ -51,8 +51,6 @@ const CommunityPoll: React.FC = () => {
 
   const [gestureRecognized, setGestureRecognized] = useState(false);
   const [hapticFeedback, setHapticFeedback] = useState(false);
-  const [swipeVelocity, setSwipeVelocity] = useState(0);
-  const [lastTouchTime, setLastTouchTime] = useState(0);
   const [lastTouchX, setLastTouchX] = useState(0);
   // Load movies on component mount
   React.useEffect(() => {
@@ -867,7 +865,7 @@ const CommunityPoll: React.FC = () => {
                             </div>
                           )}
                         </div>
-                        className={`px-3 py-1 text-sm rounded-lg transition-colors cinema-button-enhanced ${
+                      </div>
                       <div 
                         className="p-3 sm:p-4 flex-shrink-0 cursor-pointer hover:bg-[rgba(0,224,255,0.05)] transition-all duration-300 relative z-10"
                         onClick={() => handleMovieClick(movie)}

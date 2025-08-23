@@ -575,13 +575,12 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('not-cinema')}
                   disabled={movieJudge.isSubmittingVerdict || (movieJudge.user && movieJudge.hasAlreadyJudged)}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cinema-button-enhanced"
                 >
                   {movieJudge.isSubmittingVerdict ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
+                    <div className="cinema-loading-enhanced">
                       <span className="text-sm font-medium">Recording...</span>
-                    </>
+                    </div>
                   ) : (
                     <>
                       <XCircle className="w-4 h-4" />
@@ -592,13 +591,12 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('cinema')}
                   disabled={movieJudge.isSubmittingVerdict || (movieJudge.user && movieJudge.hasAlreadyJudged)}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cinema-button-enhanced"
                 >
                   {movieJudge.isSubmittingVerdict ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
+                    <div className="cinema-loading-enhanced">
                       <span className="text-sm font-medium">Recording...</span>
-                    </>
+                    </div>
                   ) : (
                     <>
                       <CheckCircle className="w-4 h-4" />
