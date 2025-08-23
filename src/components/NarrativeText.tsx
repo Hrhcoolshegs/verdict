@@ -43,7 +43,7 @@ const NarrativeText: React.FC = () => {
             <div className={`transform transition-all duration-1000 ease-out ${
               index === visibleIndex ? 'opacity-100' : 'opacity-0'
             }`}>
-              <p className="text-2xl sm:text-4xl md:text-6xl lg:text-7xl cinema-title text-center leading-relaxed text-[#F2F4F8] max-w-4xl text-shadow-lg parallax-slow">
+              <p className="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-space-grotesk font-bold text-center leading-relaxed text-[#F2F4F8] max-w-4xl text-shadow-lg">
                 {text.split('\n').map((line, lineIndex) => (
                   <React.Fragment key={lineIndex}>
                     {line}

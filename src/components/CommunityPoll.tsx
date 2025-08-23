@@ -1,12 +1,54 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, X, Trophy, Medal, Award, TrendingUp, TrendingDown, Users, Star, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Trophy, Medal, Award, TrendingUp, TrendingDown, Users, Star } from 'lucide-react';
 import { fetchMovies, calculateCinemaPercentage, isMovieCinema, recordUserVerdict, hasUserAlreadyJudged, getUserVerdict, type Movie } from '../data/movies';
 import { supabase } from '../lib/supabase';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { usePersonalJourney } from '../hooks/usePersonalJourney';
-import MovieDetailsModal from './MovieDetailsModal';
-import PersonalStatsModal from './PersonalStatsModal';
-import LazyImage from './LazyImage';
+import type { User } from '@supabase/supabase-js';
+
+// Lazy loading image component
+const LazyImage: React.FC<{ src: string; alt: string; className: string }> = ({ src, alt, className }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const imgRef = React.useRef<HTMLImageElement>(null);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={imgRef} className={`${className} bg-gray-800 flex items-center justify-center`}>
+      {isInView && (
+        <img
+          src={src}
+          alt={alt}
+          className={`${className} transition-opacity duration-300 ${
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+          onLoad={() => setIsLoaded(true)}
+          loading="lazy"
+        />
+      )}
+      {!isLoaded && isInView && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const CommunityPoll: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -17,13 +59,12 @@ const CommunityPoll: React.FC = () => {
   const [isSubmittingVerdict, setIsSubmittingVerdict] = useState(false);
   const [verdictFeedback, setVerdictFeedback] = useState<{ movieId: number; message: string } | null>(null);
   const moviesPerPage = 12;
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [userVerdicts, setUserVerdicts] = useState<Record<number, 'cinema' | 'not-cinema'>>({});
   const [showEmailPrompt, setShowEmailPrompt] = useState<{ movieId: number; verdict: 'cinema' | 'not-cinema' } | null>(null);
   const [userEmail, setUserEmail] = useState('');
   const [isEmailVerificationSent, setIsEmailVerificationSent] = useState(false);
   const [isSubmittingEmailVerdict, setIsSubmittingEmailVerdict] = useState(false);
-  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
 
   // New state for improved swipe functionality
   const [isSwiping, setIsSwiping] = useState(false);
@@ -37,26 +78,6 @@ const CommunityPoll: React.FC = () => {
   const [showNonBlockingEmailPrompt, setShowNonBlockingEmailPrompt] = useState(false);
 
   const SWIPE_THRESHOLD = typeof window !== 'undefined' ? window.innerWidth / 4 : 100;
-
-  // New state for movie details modal
-  const [selectedMovieForDetails, setSelectedMovieForDetails] = useState<Movie | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-
-  // Enhanced visual state
-  const [hoveredMovieId, setHoveredMovieId] = useState<number | null>(null);
-  const [dynamicColors, setDynamicColors] = useState<Record<number, string>>({});
-
-  // Enhanced swipe physics state
-  const [swipeVelocity, setSwipeVelocity] = useState(0);
-  const [lastTouchTime, setLastTouchTime] = useState(0);
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
-  const [isSwipeCommitted, setIsSwipeCommitted] = useState(false);
-
-  const [gestureRecognized, setGestureRecognized] = useState(false);
-  const [hapticFeedback, setHapticFeedback] = useState(false);
-  const [lastTouchX, setLastTouchX] = useState(0);
-
-  const { addVerdict, getPersonalVerdict } = usePersonalJourney();
 
   // Load movies on component mount
   React.useEffect(() => {
@@ -327,92 +348,6 @@ const CommunityPoll: React.FC = () => {
     }
   };
 
-  const handleMovieClick = (movie: Movie) => {
-    setSelectedMovieForDetails(movie);
-    setShowDetailsModal(true);
-  };
-
-  // Extract dominant color from movie poster
-  const extractDominantColor = async (imageUrl: string, movieId: number) => {
-    try {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        
-        let r = 0, g = 0, b = 0;
-        const sampleSize = 10;
-        
-        for (let i = 0; i < data.length; i += 4 * sampleSize) {
-          r += data[i];
-          g += data[i + 1];
-          b += data[i + 2];
-        }
-        
-        const pixelCount = data.length / (4 * sampleSize);
-        r = Math.floor(r / pixelCount);
-        g = Math.floor(g / pixelCount);
-        b = Math.floor(b / pixelCount);
-        
-        const dominantColor = `rgb(${r}, ${g}, ${b})`;
-        setDynamicColors(prev => ({ ...prev, [movieId]: dominantColor }));
-      };
-      img.src = imageUrl;
-    } catch (error) {
-      console.log('Could not extract color from image:', error);
-    }
-  };
-
-  // Create particle effect on interaction
-  const createParticleEffect = (e: React.MouseEvent, element: HTMLElement) => {
-    const rect = element.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    // Enhanced particle system
-    const particleCount = Math.random() * 8 + 5; // 5-13 particles
-    
-    for (let i = 0; i < particleCount; i++) {
-      const particle = document.createElement('div');
-      particle.className = 'particle-trail';
-      
-      // Add randomized starting positions
-      const offsetX = (Math.random() - 0.5) * 20;
-      const offsetY = (Math.random() - 0.5) * 20;
-      particle.style.left = `${x + offsetX}px`;
-      particle.style.top = `${y + offsetY}px`;
-      particle.style.animationDelay = `${i * 0.1}s`;
-      
-      // Randomize particle colors
-      const colors = ['#00E0FF', '#00BFFF', '#87CEEB', '#FFD700'];
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      particle.style.background = `radial-gradient(circle, ${color} 0%, transparent 70%)`;
-      
-      element.appendChild(particle);
-      
-      setTimeout(() => {
-        if (particle.parentNode) {
-          particle.parentNode.removeChild(particle);
-        }
-      }, 1200);
-    }
-    
-    // Add haptic feedback class
-    element.classList.add('haptic-feedback');
-    setTimeout(() => {
-      element.classList.remove('haptic-feedback');
-    }, 200);
-  };
-
   const sortedMovies = [...movies].sort((a, b) => {
     const aPercentage = calculateCinemaPercentage(a);
     const bPercentage = calculateCinemaPercentage(b);
@@ -498,12 +433,6 @@ const CommunityPoll: React.FC = () => {
     } else {
       // Swipe left - vote not cinema
       processVote(movieId, 'not-cinema');
-    }
-
-    // Add to personal journey
-    const movie = movies.find(m => m.id === movieId);
-    if (movie) {
-      addVerdict(movie, verdict, 8); // Default confidence of 8/10
     }
   };
 
@@ -623,23 +552,13 @@ const CommunityPoll: React.FC = () => {
     <section className="py-24 px-6" data-section="verdict">
       <EmailPromptModal />
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-16">
-          <div className="text-center flex-1">
-            <h2 className="text-4xl md:text-6xl font-bold font-space-grotesk mb-6 text-[#00E0FF]">
-              Verdict
-            </h2>
-            <p className="text-xl text-[#A6A9B3] max-w-2xl mx-auto leading-relaxed">
-              Click through movies and cast your vote. Choose cinema or not.
-            </p>
-          </div>
-          
-          <button
-            onClick={() => setIsStatsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[rgba(0,224,255,0.1)] border border-[rgba(0,224,255,0.2)] rounded-lg hover:border-[#00E0FF] transition-all duration-300 cinema-card-enhanced"
-          >
-            <User className="w-4 h-4" />
-            <span className="text-sm cinema-title">Your Journey</span>
-          </button>
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-6xl font-bold font-space-grotesk mb-6 text-[#00E0FF]">
+            Verdict
+          </h2>
+          <p className="text-xl text-[#A6A9B3] max-w-2xl mx-auto leading-relaxed">
+            Click through movies and cast your vote. Choose cinema or not.
+          </p>
         </div>
 
         {/* Stats Overview */}
@@ -685,10 +604,6 @@ const CommunityPoll: React.FC = () => {
                   setCurrentX(touch.clientX);
                   setIsSwiping(true);
                   setCardTransition('none');
-                  setLastTouchTime(Date.now());
-                  setSwipeVelocity(0);
-                  setSwipeDirection(null);
-                  setIsSwipeCommitted(false);
                 };
                 
                 const handleTouchMove = (e: React.TouchEvent) => {
@@ -696,90 +611,27 @@ const CommunityPoll: React.FC = () => {
                   
                   const touch = e.touches[0];
                   const deltaX = touch.clientX - startX;
-                  const now = Date.now();
-                  const timeDelta = now - lastTouchTime;
-                  
-                  // Calculate velocity for physics-based feedback
-                  if (timeDelta > 0) {
-                    const velocity = Math.abs(deltaX) / timeDelta;
-                    setSwipeVelocity(velocity);
-                  }
-                  
-                  // Enhanced rotation with physics
-                  const maxRotation = 25;
-                  const rotationFactor = Math.min(Math.abs(deltaX) / (window.innerWidth * 0.3), 1);
-                  const rotation = Math.sign(deltaX) * rotationFactor * maxRotation;
-                  
-                  // Add subtle scale effect based on swipe distance
-                  const scaleFactor = 1 + (Math.abs(deltaX) / window.innerWidth) * 0.05;
-                  
-                  // Determine swipe direction for visual feedback
-                  const direction = deltaX > 0 ? 'right' : 'left';
-                  setSwipeDirection(direction);
-                  
-                  // Add opacity fade for dramatic effect
-                  const opacity = Math.max(0.7, 1 - (Math.abs(deltaX) / window.innerWidth) * 0.3);
+                  const rotation = (deltaX / window.innerWidth) * 20; // Max 20 degrees rotation
                   
                   setCurrentX(touch.clientX);
-                  setCardTransform(`translateX(${deltaX}px) rotate(${rotation}deg) scale(${scaleFactor}) translateZ(${Math.abs(deltaX) * 0.1}px)`);
-                  
-                  // Update card style for visual feedback
-                  const cardElement = e.currentTarget as HTMLElement;
-                  cardElement.style.opacity = opacity.toString();
-                  
-                  // Add color tint based on direction
-                  if (Math.abs(deltaX) > 50) {
-                    const tintColor = direction === 'right' ? 'rgba(0, 224, 255, 0.1)' : 'rgba(255, 215, 0, 0.1)';
-                    cardElement.style.backgroundColor = tintColor;
-                  } else {
-                    cardElement.style.backgroundColor = '';
-                  }
-                  
-                  setLastTouchTime(now);
+                  setCardTransform(`translateX(${deltaX}px) rotate(${rotation}deg)`);
                 };
                 
                 const handleTouchEnd = (e: React.TouchEvent) => {
                   if (!isSwiping || isSubmittingVerdict) return;
                   
                   setIsSwiping(false);
-                  
-                  const cardElement = e.currentTarget as HTMLElement;
-                  cardElement.style.opacity = '';
-                  cardElement.style.backgroundColor = '';
+                  setCardTransition('transform 0.3s ease-out');
                   
                   const deltaX = currentX - startX;
-                  const absVelocity = Math.abs(swipeVelocity);
                   
-                  // Enhanced threshold calculation with velocity
-                  const velocityThreshold = absVelocity > 0.5 ? SWIPE_THRESHOLD * 0.7 : SWIPE_THRESHOLD;
-                  const shouldCommit = Math.abs(deltaX) > velocityThreshold;
-                  
-                  if (shouldCommit && !isSwipeCommitted) {
-                    setIsSwipeCommitted(true);
+                  if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
                     const verdict = deltaX > 0 ? 'cinema' : 'not-cinema';
                     
-                    // Physics-based exit animation
-                    const exitVelocity = Math.max(1, absVelocity);
-                    const offScreenX = Math.sign(deltaX) * window.innerWidth * 1.2;
-                    const offScreenRotation = Math.sign(deltaX) * (30 + exitVelocity * 10);
-                    const exitScale = 0.8;
-                    
-                    // Dynamic animation duration based on velocity
-                    const animationDuration = Math.max(200, 400 - (exitVelocity * 100));
-                    setCardTransition(`transform ${animationDuration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`);
-                    setCardTransform(`translateX(${offScreenX}px) rotate(${offScreenRotation}deg) scale(${exitScale}) translateZ(100px)`);
-                    
-                    // Add haptic feedback through animation
-                    if (navigator.vibrate) {
-                      navigator.vibrate(verdict === 'cinema' ? [50, 30, 50] : [100]);
-                    }
-                    
-                    // Visual feedback flash
-                    const flashColor = verdict === 'cinema' ? 'rgba(0, 224, 255, 0.3)' : 'rgba(255, 215, 0, 0.3)';
-                    cardElement.style.boxShadow = `0 0 50px ${flashColor}`;
-                    setTimeout(() => {
-                      cardElement.style.boxShadow = '';
-                    }, animationDuration);
+                    // Animate card off screen
+                    const offScreenX = Math.sign(deltaX) * window.innerWidth;
+                    const offScreenRotation = Math.sign(deltaX) * 30;
+                    setCardTransform(`translateX(${offScreenX}px) rotate(${offScreenRotation}deg)`);
                     
                     // Process the vote
                     processVote(movies[currentIndex].id, verdict);
@@ -788,54 +640,26 @@ const CommunityPoll: React.FC = () => {
                     setTimeout(() => {
                       setCardTransform('');
                       setCardTransition('');
-                      setIsSwipeCommitted(false);
                       setCurrentIndex((prev) => (prev + 1) % movies.length);
-                    }, animationDuration);
+                    }, 300);
                   } else {
-                    // Enhanced snap-back animation with bounce
-                    const snapDuration = 300;
-                    setCardTransition(`transform ${snapDuration}ms cubic-bezier(0.68, -0.55, 0.265, 1.55)`);
+                    // Snap back to center
                     setCardTransform('');
-                    
-                    // Add subtle shake for failed swipe
-                    if (Math.abs(deltaX) > SWIPE_THRESHOLD * 0.5) {
-                      setTimeout(() => {
-                        setCardTransition('transform 100ms ease-in-out');
-                        setCardTransform('translateX(5px)');
-                        setTimeout(() => {
-                          setCardTransform('translateX(-5px)');
-                          setTimeout(() => {
-                            setCardTransform('');
-                            setCardTransition('');
-                          }, 50);
-                        }, 50);
-                      }, 100);
-                    }
                   }
                   
                   // Reset touch coordinates
                   setTimeout(() => {
                     setStartX(0);
                     setCurrentX(0);
-                    setSwipeVelocity(0);
-                    setSwipeDirection(null);
                   }, 300);
                 };
                 
                 return (
                   <div
                     key={movie.id}
-                    className="cinema-card-3d"
                     onTouchStart={isActive ? handleTouchStart : undefined}
                     onTouchMove={isActive ? handleTouchMove : undefined}
                     onTouchEnd={isActive ? handleTouchEnd : undefined}
-                    onMouseEnter={() => {
-                      setHoveredMovieId(movie.id);
-                      if (!dynamicColors[movie.id]) {
-                        extractDominantColor(movie.poster, movie.id);
-                      }
-                    }}
-                    onMouseLeave={() => setHoveredMovieId(null)}
                     className={`absolute inset-0 transition-all duration-300 transform ${
                       isActive 
                         ? 'scale-100 z-20 rotate-0' 
@@ -844,103 +668,30 @@ const CommunityPoll: React.FC = () => {
                           : offset === -1
                             ? 'scale-95 z-10 -rotate-2 -translate-x-4'
                             : 'scale-90 z-0 opacity-0'
-                    } cinema-card-3d`}
+                    }`}
                     style={isActive && (cardTransform || cardTransition) ? {
                       transform: cardTransform || undefined,
                       transition: cardTransition || undefined
                     } : undefined}
                   >
-                    <div 
-                      className={`card-inner bg-[rgba(16,18,24,0.8)] backdrop-blur-cinema border border-[rgba(255,215,0,0.1)] rounded-2xl overflow-hidden shadow-2xl h-full cursor-pointer transition-all duration-500 flex flex-col film-strip-border film-grain cinema-card-enhanced ${
-                        hoveredMovieId === movie.id ? 'border-[#FFD700]' : ''
-                      }`}
-                      style={{
-                        borderColor: hoveredMovieId === movie.id && dynamicColors[movie.id] 
-                          ? dynamicColors[movie.id] 
-                          : undefined
-                      }}
-                    >
-                      <div className="sprocket-holes"></div>
+                    <div className="bg-[rgba(16,18,24,0.8)] backdrop-blur-xl border border-[rgba(255,215,0,0.1)] rounded-2xl overflow-hidden shadow-2xl h-full cursor-pointer hover:border-[#FFD700] transition-colors flex flex-col">
                       <div className="flex-grow overflow-hidden">
-                        <div className="relative overflow-hidden">
-                          <LazyImage
-                            src={movie.poster}
-                            alt={movie.title}
-                            className="w-full h-full object-cover aspect-185 transition-transform duration-300"
-                          />
-                          {/* Swipe direction indicator */}
-                          {isActive && isSwiping && swipeDirection && (
-                            <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${
-                              Math.abs(currentX - startX) > 50 ? 'opacity-100' : 'opacity-0'
-                            }`}>
-                              <div className={`w-20 h-20 rounded-full flex items-center justify-center backdrop-blur-sm border-2 ${
-                                swipeDirection === 'right' 
-                                  ? 'bg-[rgba(0,224,255,0.2)] border-[#00E0FF] cinema-glow' 
-                                  : 'bg-[rgba(255,215,0,0.2)] border-[#FFD700] not-cinema-matte'
-                              }`}>
-                                {swipeDirection === 'right' ? (
-                                  <span className="text-2xl font-bold text-[#00E0FF]">✓</span>
-                                ) : (
-                                  <X className="w-8 h-8 text-[#FFD700]" />
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Personal Verdict Indicator */}
-                          {(() => {
-                            const personalVerdict = getPersonalVerdict(movie.id);
-                            if (personalVerdict) {
-                              return (
-                                <div className="absolute top-4 left-4 z-10">
-                                  <div className={`px-2 py-1 rounded-full text-xs font-medium border ${
-                                    personalVerdict.verdict === 'cinema'
-                                      ? 'bg-[rgba(0,224,255,0.1)] text-[#00E0FF] border-[rgba(0,224,255,0.3)]'
-                                      : 'bg-[rgba(255,215,0,0.1)] text-[#FFD700] border-[rgba(255,215,0,0.3)]'
-                                  }`}>
-                                    Your Vote: {personalVerdict.verdict === 'cinema' ? 'Cinema' : 'Not Cinema'}
-                                  </div>
-                                </div>
-                              );
-                            }
-                            return null;
-                          })()}
-                        </div>
+                        <LazyImage
+                          src={movie.poster}
+                          alt={movie.title}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <div 
-                        className="p-3 sm:p-4 flex-shrink-0 cursor-pointer hover:bg-[rgba(0,224,255,0.05)] transition-all duration-300 relative z-10"
-                        onClick={() => handleMovieClick(movie)}
-                        onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
-                      >
-                        <h3 className="cinema-title text-base sm:text-lg text-[#00E0FF] truncate text-shadow-cinema">
+                      <div className="p-3 sm:p-4 flex-shrink-0">
+                        <h3 className="font-bold text-base sm:text-lg text-[#00E0FF] truncate">
                           {movie.title}
                         </h3>
-                        <p className="director-credit text-xs sm:text-sm text-[#A6A9B3] truncate">
+                        <p className="text-xs sm:text-sm text-[#A6A9B3] truncate">
                           {movie.director} • {movie.year}
                         </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <div 
-                            className="film-reel-progress"
-                            style={{ '--progress': `${calculateCinemaPercentage(movie)}%` } as React.CSSProperties}
-                          >
-                            <span className="film-reel-center text-[#00E0FF]">
-                              {calculateCinemaPercentage(movie)}%
-                            </span>
-                          </div>
-                          <span className="text-xs text-[#A6A9B3]">say Cinema</span>
-                        </div>
-                        {movie.micro_genres && movie.micro_genres.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {movie.micro_genres.slice(0, 2).map((genre, idx) => (
-                              <span
-                                key={idx}
-                                className={`px-2 py-1 rounded text-xs text-[#00E0FF] genre-icon-${genre.split('-')[0]} bg-opacity-20 border border-opacity-30`}
-                              >
-                                {genre.replace(/-/g, ' ')}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                        <p className="text-xs text-[#00E0FF] mt-1">
+                          {calculateCinemaPercentage(movie)}% say Cinema
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -953,15 +704,14 @@ const CommunityPoll: React.FC = () => {
               <button
                 onClick={() => handleVote(movies[currentIndex]?.id, 'not-cinema')}
                 disabled={isSubmittingVerdict || !movies[currentIndex] || userVerdicts[movies[currentIndex]?.id] || (showEmailPrompt && showEmailPrompt.movieId === movies[currentIndex]?.id)}
-                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cinema-card-enhanced transform hover:scale-110 active:scale-95 ${
+                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
                   userVerdicts[movies[currentIndex]?.id] === 'not-cinema' 
-                    ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700] not-cinema-matte' 
-                    : 'bg-[#00BFFF] hover:bg-[#0099CC] text-white hover:scale-110 focus:ring-[#00BFFF] disabled:opacity-50 cinema-glow'
+                    ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700]' 
+                    : 'bg-[#00BFFF] hover:bg-[#0099CC] text-white hover:scale-110 focus:ring-[#00BFFF] disabled:opacity-50'
                 }`}
-                onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
               >
                 {isSubmittingVerdict ? (
-                  <div className="projector-loading animate-pulse" />
+                  <div className="w-4 h-4 sm:w-6 sm:h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <X className="w-6 h-6 sm:w-8 sm:h-8" />
                 )}
@@ -969,15 +719,14 @@ const CommunityPoll: React.FC = () => {
               <button
                 onClick={() => handleVote(movies[currentIndex]?.id, 'cinema')}
                 disabled={isSubmittingVerdict || !movies[currentIndex] || userVerdicts[movies[currentIndex]?.id] || (showEmailPrompt && showEmailPrompt.movieId === movies[currentIndex]?.id)}
-                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cinema-card-enhanced transform hover:scale-110 active:scale-95 ${
+                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
                   userVerdicts[movies[currentIndex]?.id] === 'cinema' 
-                    ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF] scale-110 cinema-glow' 
-                    : 'bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] hover:scale-110 focus:ring-[#00E0FF] disabled:opacity-50 cinema-glow'
+                    ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF] scale-110' 
+                    : 'bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] hover:scale-110 focus:ring-[#00E0FF] disabled:opacity-50'
                 }`}
-                onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
               >
                 {isSubmittingVerdict ? (
-                  <div className="projector-loading border-[#0B0B10] animate-pulse" />
+                  <div className="w-4 h-4 sm:w-6 sm:h-6 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <span className="text-xl sm:text-2xl font-bold">✓</span>
                 )}
@@ -1016,9 +765,9 @@ const CommunityPoll: React.FC = () => {
           </div>
 
           {/* Cinema Billboard */}
-          <div className="bg-[rgba(16,18,24,0.6)] backdrop-blur-cinema border border-[rgba(255,215,0,0.1)] rounded-2xl p-4 sm:p-6 lg:p-8 film-grain cinema-border">
+          <div className="bg-[rgba(16,18,24,0.6)] backdrop-blur-xl border border-[rgba(255,215,0,0.1)] rounded-2xl p-4 sm:p-6 lg:p-8">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="cinema-title text-xl sm:text-2xl text-[#00E0FF] text-shadow-cinema">
+              <h3 className="text-xl sm:text-2xl font-bold font-space-grotesk text-[#00E0FF]">
                 Cinema Billboard
               </h3>
               
@@ -1052,90 +801,55 @@ const CommunityPoll: React.FC = () => {
                 return (
                   <div
                     key={movie.id}
-                    className={`bg-[rgba(16,18,24,0.4)] rounded-xl p-3 sm:p-4 transition-all duration-300 cinema-card-enhanced film-grain ${
+                    className={`bg-[rgba(16,18,24,0.4)] rounded-xl p-3 sm:p-4 transition-colors ${
                       isCinema 
-                        ? 'border border-[rgba(0,224,255,0.1)] hover:border-[#00E0FF] cinema-glow' 
-                        : 'border border-[rgba(255,215,0,0.1)] hover:border-[#FFD700] not-cinema-matte'
+                        ? 'border border-[rgba(0,224,255,0.1)] hover:border-[#00E0FF]' 
+                        : 'border border-[rgba(255,215,0,0.1)] hover:border-[#FFD700]'
                     }`}
-                    onMouseEnter={() => {
-                      setHoveredMovieId(movie.id);
-                      if (!dynamicColors[movie.id]) {
-                        extractDominantColor(movie.poster, movie.id);
-                      }
-                    }}
-                    onMouseLeave={() => setHoveredMovieId(null)}
                   >
-                    <div 
-                      className="flex items-start gap-3 sm:gap-4 cursor-pointer perspective-1000"
-                      onClick={() => handleMovieClick(movie)}
-                      onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
-                    >
-                      <div className="w-12 h-16 sm:w-16 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 film-strip-border">
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <div className="w-12 h-16 sm:w-16 sm:h-20 rounded-lg overflow-hidden flex-shrink-0">
                         <LazyImage
                           src={movie.poster}
                           alt={movie.title}
-                          className="w-full h-full object-cover aspect-185"
+                          className="w-full h-full object-cover"
                         />
                       </div>
                       
-                      <div className="flex-1 min-w-0 hover:bg-[rgba(0,224,255,0.02)] rounded p-2 -m-2 transition-all duration-300 transform-3d">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-2 flex-wrap gap-2">
                           <div className="flex items-center gap-3">
-                            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold bg-[rgba(0,224,255,0.1)] text-[#00E0FF] cinema-border">
+                            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold bg-[rgba(0,224,255,0.1)] text-[#00E0FF]">
                               {rank <= 3 ? getRankIcon(rank - 1) : rank}
                             </div>
-                            <div className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                            <div className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
                               isCinema 
-                                ? 'bg-[#00E0FF] text-[#0B0B10] cinema-glow' 
-                                : 'bg-[#FFD700] text-[#0B0B10] not-cinema-matte'
+                                ? 'bg-[#00E0FF] text-[#0B0B10]' 
+                                : 'bg-[#FFD700] text-[#0B0B10]'
                             }`}>
                               <span className="hidden sm:inline">Says it's </span>{isCinema ? 'Cinema' : 'NOT Cinema'}
                             </div>
                           </div>
 
-                          <div className="text-right parallax-slow">
-                            <div className={`film-reel-progress ${
+                          <div className="text-right">
+                            <div className={`text-xl font-bold ${
                               isCinema ? 'text-[#00E0FF]' : 'text-[#FFD700]'
-                            }`} style={{ '--progress': `${cinemaPercentage}%` } as React.CSSProperties}>
-                              <span className="film-reel-center">
-                                {cinemaPercentage}%
-                              </span>
+                            }`}>
+                              {cinemaPercentage}%
                             </div>
                           </div>
                         </div>
 
-                        <h4 className="cinema-title text-sm sm:text-base text-[#F2F4F8] mb-1 truncate text-shadow-cinema">
+                        <h4 className="font-bold font-space-grotesk text-sm sm:text-base text-[#F2F4F8] mb-1 truncate">
                           {movie.title}
                         </h4>
-                        <p className="director-credit text-xs sm:text-sm text-[#A6A9B3] mb-3 truncate">
+                        <p className="text-xs sm:text-sm text-[#A6A9B3] mb-3 truncate">
                           {movie.director} • {movie.year}
                         </p>
 
-                        {/* Enhanced metadata preview */}
-                        {movie.micro_genres && movie.micro_genres.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {movie.micro_genres.slice(0, 2).map((genre, idx) => (
-                              <span
-                                key={idx}
-                                className={`px-2 py-1 rounded text-xs text-[#00E0FF] genre-icon-${genre.split('-')[0]} bg-opacity-20 border border-opacity-30 transition-all duration-300`}
-                              >
-                                {genre.replace(/-/g, ' ')}
-                              </span>
-                            ))}
-                            {movie.micro_genres.length > 2 && (
-                              <span className="px-2 py-1 bg-[rgba(0,224,255,0.05)] rounded text-xs text-[#A6A9B3] parallax-fast">
-                                +{movie.micro_genres.length - 2}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between text-xs text-[#A6A9B3] mb-3 parallax-medium">
+                        <div className="flex items-center justify-between text-xs text-[#A6A9B3] mb-3">
                           <span>{(movie.cinemaVotes + movie.notCinemaVotes).toLocaleString()} votes</span>
-                          {movie.runtime_minutes && (
-                            <span>{Math.floor(movie.runtime_minutes / 60)}h {movie.runtime_minutes % 60}m</span>
-                          )}
-                          <span className={`font-medium cinema-title ${
+                          <span className={`font-medium ${
                             isCinema ? 'text-[#00E0FF]' : 'text-[#FFD700]'
                           }`}>
                             #{rank}
@@ -1146,43 +860,37 @@ const CommunityPoll: React.FC = () => {
                           <button
                             onClick={() => handleVoteAction(movie.id, 'cinema')}
                             disabled={isSubmittingVerdict || userVerdicts[movie.id] || (showEmailPrompt && showEmailPrompt.movieId === movie.id)}
-                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative cinema-card-enhanced transform hover:scale-105 active:scale-95 ${
+                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative ${
                               userVerdicts[movie.id] === 'cinema'
-                                ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF] cinema-glow'
-                                : 'bg-[rgba(0,224,255,0.1)] hover:bg-[rgba(0,224,255,0.2)] text-[#00E0FF] focus:ring-[#00E0FF] cinema-glow'
+                                ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF]'
+                                : 'bg-[rgba(0,224,255,0.1)] hover:bg-[rgba(0,224,255,0.2)] text-[#00E0FF] focus:ring-[#00E0FF]'
                             }`}
-                            onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
                           >
                             {isSubmittingVerdict && verdictFeedback?.movieId === movie.id ? (
-                              <div className="flex items-center justify-center animate-pulse">
-                                <div className="projector-loading w-3 h-3 mr-2" />
-                                <span className="cinema-title">Cinema</span>
+                              <div className="flex items-center justify-center">
+                                <div className="w-3 h-3 border border-[#00E0FF] border-t-transparent rounded-full animate-spin mr-2" />
+                                Cinema
                               </div>
                             ) : (
-                              <span className="cinema-title">
-                                {userVerdicts[movie.id] === 'cinema' ? '✓ Cinema' : 'Cinema'}
-                              </span>
+                              userVerdicts[movie.id] === 'cinema' ? '✓ Cinema' : 'Cinema'
                             )}
                           </button>
                           <button
                             onClick={() => handleVoteAction(movie.id, 'not-cinema')}
                             disabled={isSubmittingVerdict || userVerdicts[movie.id] || (showEmailPrompt && showEmailPrompt.movieId === movie.id)}
-                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative cinema-card-enhanced transform hover:scale-105 active:scale-95 ${
+                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative ${
                               userVerdicts[movie.id] === 'not-cinema'
-                                ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700] not-cinema-matte'
-                                : 'bg-[rgba(255,215,0,0.1)] hover:bg-[rgba(255,215,0,0.2)] text-[#FFD700] focus:ring-[#FFD700] not-cinema-matte'
+                                ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700]'
+                                : 'bg-[rgba(255,215,0,0.1)] hover:bg-[rgba(255,215,0,0.2)] text-[#FFD700] focus:ring-[#FFD700]'
                             }`}
-                            onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
                           >
                             {isSubmittingVerdict && verdictFeedback?.movieId === movie.id ? (
-                              <div className="flex items-center justify-center animate-pulse">
-                                <div className="projector-loading w-3 h-3 mr-2 border-[#FFD700]" />
-                                <span className="cinema-title">Not Cinema</span>
+                              <div className="flex items-center justify-center">
+                                <div className="w-3 h-3 border border-[#FFD700] border-t-transparent rounded-full animate-spin mr-2" />
+                                Not Cinema
                               </div>
                             ) : (
-                              <span className="cinema-title">
-                                {userVerdicts[movie.id] === 'not-cinema' ? '✗ Not Cinema' : 'Not Cinema'}
-                              </span>
+                              userVerdicts[movie.id] === 'not-cinema' ? '✗ Not Cinema' : 'Not Cinema'
                             )}
                           </button>
                         </div>
@@ -1190,7 +898,7 @@ const CommunityPoll: React.FC = () => {
                         {/* Individual movie verdict feedback */}
                         {verdictFeedback && verdictFeedback.movieId === movie.id && (
                           <div className="mt-2 text-center">
-                            <div className="inline-block px-2 py-1 bg-[rgba(0,224,255,0.1)] border border-[rgba(0,224,255,0.3)] rounded text-xs text-[#00E0FF] cinema-glow">
+                            <div className="inline-block px-2 py-1 bg-[rgba(0,224,255,0.1)] border border-[rgba(0,224,255,0.3)] rounded text-xs text-[#00E0FF]">
                               {verdictFeedback.message}
                             </div>
                           </div>
@@ -1231,22 +939,6 @@ const CommunityPoll: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Movie Details Modal */}
-      <MovieDetailsModal
-        movie={selectedMovieForDetails}
-        isOpen={showDetailsModal}
-        onClose={() => {
-          setShowDetailsModal(false);
-          setSelectedMovieForDetails(null);
-        }}
-      />
-
-      <PersonalStatsModal
-        isOpen={isStatsModalOpen}
-        onClose={() => setIsStatsModalOpen(false)}
-        allMovies={movies}
-      />
     </section>
   );
 };

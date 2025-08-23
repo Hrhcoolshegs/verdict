@@ -1,11 +1,25 @@
 import { supabase } from '../lib/supabase';
-import { EnhancedMovie, transformDbRowToEnhancedMovie } from '../utils/movieSeeder';
 
-// Re-export the enhanced movie interface
-export type Movie = EnhancedMovie;
+export interface Movie {
+  id: number;
+  title: string;
+  director: string;
+  year: number;
+  poster: string;
+  cinemaVotes: number;
+  notCinemaVotes: number;
+}
 
-// Use the enhanced transformer
-const transformDbRowToMovie = transformDbRowToEnhancedMovie;
+// Transform database row to Movie interface
+const transformDbRowToMovie = (row: any): Movie => ({
+  id: row.id,
+  title: row.title,
+  director: row.director,
+  year: row.year,
+  poster: row.poster,
+  cinemaVotes: row.cinema_votes,
+  notCinemaVotes: row.not_cinema_votes,
+});
 
 // Fetch all movies from Supabase
 export const fetchMovies = async (): Promise<Movie[]> => {

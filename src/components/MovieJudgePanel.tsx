@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, X, RotateCcw, Shuffle, Share2, CheckCircle, XCircle, Mail, LogOut } from 'lucide-react';
 import { useMovieJudge } from '../hooks/useMovieJudge';
-import { usePersonalJourney } from '../hooks/usePersonalJourney';
 
 interface MovieJudgePanelProps {
   isOpen: boolean;
@@ -11,7 +10,6 @@ interface MovieJudgePanelProps {
 const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) => {
   const movieJudge = useMovieJudge();
   const [showVerdictAnimation, setShowVerdictAnimation] = useState(false);
-  const { addVerdict, getPersonalVerdict } = usePersonalJourney();
 
   // Animate verdict when it changes
   useEffect(() => {
@@ -233,35 +231,6 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               </div>
             </div>
           )}
-          
-          {/* Personal Journey Verdict Display */}
-          {movieJudge.currentMovie && (() => {
-            const personalVerdict = getPersonalVerdict(movieJudge.currentMovie.id);
-            if (personalVerdict && !movieJudge.hasAlreadyJudged) {
-              return (
-                <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-4">
-                  <div className="flex items-center gap-3">
-                    {personalVerdict.verdict === 'cinema' ? (
-                      <CheckCircle className="w-6 h-6 text-[#00E0FF]" />
-                    ) : (
-                      <XCircle className="w-6 h-6 text-[#FFD700]" />
-                    )}
-                    <div>
-                      <p className="text-sm text-[#A6A9B3]">
-                        Your personal verdict: <span className={`font-medium ${personalVerdict.verdict === 'cinema' ? 'text-[#00E0FF]' : 'text-[#FFD700]'}`}>
-                          {personalVerdict.verdict === 'cinema' ? 'Cinema' : 'Not Cinema'}
-                        </span>
-                      </p>
-                      <p className="text-xs text-[#A6A9B3] director-credit">
-                        Recorded {new Date(personalVerdict.timestamp).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-            return null;
-          })()}
 
           {/* Verdict Display */}
           {movieJudge.verdict && (
@@ -373,18 +342,6 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                   )}
                 </button>
               </div>
-              
-              {/* Add to personal journey when voting */}
-              {movieJudge.currentMovie && (() => {
-                const originalHandleVerdictSubmit = movieJudge.handleVerdictSubmit;
-                const enhancedHandleVerdictSubmit = (verdict: 'cinema' | 'not-cinema') => {
-                  if (movieJudge.currentMovie) {
-                    addVerdict(movieJudge.currentMovie, verdict, 8);
-                  }
-                  return originalHandleVerdictSubmit(verdict);
-                };
-                return null; // This is just for the side effect
-              })()}
             </div>
           )}
 
@@ -584,32 +541,6 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
               </div>
             </div>
           )}
-          
-          {/* Mobile Personal Journey Verdict Display */}
-          {movieJudge.currentMovie && (() => {
-            const personalVerdict = getPersonalVerdict(movieJudge.currentMovie.id);
-            if (personalVerdict && !movieJudge.hasAlreadyJudged) {
-              return (
-                <div className="bg-[rgba(16,18,24,0.6)] border border-[rgba(0,224,255,0.1)] rounded-xl p-3">
-                  <div className="flex items-center gap-2">
-                    {personalVerdict.verdict === 'cinema' ? (
-                      <CheckCircle className="w-4 h-4 text-[#00E0FF]" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-[#FFD700]" />
-                    )}
-                    <div>
-                      <p className="text-sm text-[#A6A9B3]">
-                        Personal: <span className={`font-medium ${personalVerdict.verdict === 'cinema' ? 'text-[#00E0FF]' : 'text-[#FFD700]'}`}>
-                          {personalVerdict.verdict === 'cinema' ? 'Cinema' : 'Not Cinema'}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-            return null;
-          })()}
 
           {/* Verdict Display */}
           {movieJudge.verdict && (
@@ -644,12 +575,13 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('not-cinema')}
                   disabled={movieJudge.isSubmittingVerdict || (movieJudge.user && movieJudge.hasAlreadyJudged)}
-                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cinema-button-enhanced"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#FFD700] hover:bg-[#E0C000] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {movieJudge.isSubmittingVerdict ? (
-                    <div className="cinema-loading-enhanced">
+                    <>
+                      <div className="w-4 h-4 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
                       <span className="text-sm font-medium">Recording...</span>
-                    </div>
+                    </>
                   ) : (
                     <>
                       <XCircle className="w-4 h-4" />
@@ -660,12 +592,13 @@ const MovieJudgePanel: React.FC<MovieJudgePanelProps> = ({ isOpen, onClose }) =>
                 <button
                   onClick={() => movieJudge.handleVerdictSubmit('cinema')}
                   disabled={movieJudge.isSubmittingVerdict || (movieJudge.user && movieJudge.hasAlreadyJudged)}
-                  className="flex-1 flex items-center justify-center gap-2 py-4 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cinema-button-enhanced"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] rounded-lg transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {movieJudge.isSubmittingVerdict ? (
-                    <div className="cinema-loading-enhanced">
+                    <>
+                      <div className="w-4 h-4 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
                       <span className="text-sm font-medium">Recording...</span>
-                    </div>
+                    </>
                   ) : (
                     <>
                       <CheckCircle className="w-4 h-4" />

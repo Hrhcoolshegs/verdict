@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { findMovieByTitle, isMovieCinema, getRandomMovie, recordUserVerdict, hasUserAlreadyJudged, getUserVerdict, type Movie } from '../data/movies';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import { usePersonalJourney } from './usePersonalJourney';
 
 export interface MovieJudgeState {
   searchQuery: string;
@@ -50,8 +49,6 @@ const DEFAULT_MOODS = [
 ] as const;
 
 export const useMovieJudge = () => {
-  const { addVerdict } = usePersonalJourney();
-  
   // Initialize state from localStorage
   const [state, setState] = useState<MovieJudgeState>(() => ({
     searchQuery: localStorage.getItem(STORAGE_KEYS.SEARCH_QUERY) || '',
@@ -237,10 +234,6 @@ export const useMovieJudge = () => {
         
         if (result.success && result.movie) {
           const newVerdict = isMovieCinema(result.movie) ? 'cinema' : 'not-cinema';
-          
-          // Add to personal journey
-          addVerdict(result.movie, verdict, 8);
-          
           setState(prev => ({
             ...prev,
             verdict: newVerdict,
@@ -340,10 +333,6 @@ export const useMovieJudge = () => {
       
       if (result.success && result.movie) {
         const newVerdict = isMovieCinema(result.movie) ? 'cinema' : 'not-cinema';
-        
-        // Add to personal journey
-        addVerdict(result.movie, state.pendingVerdictType!, 8);
-        
         setState(prev => ({
           ...prev,
           verdict: newVerdict,
