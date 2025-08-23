@@ -9,6 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Enhanced type definitions for comprehensive movie data
 export type Database = {
   public: {
     Tables: {
@@ -19,6 +20,25 @@ export type Database = {
           director: string;
           year: number;
           poster: string;
+          plot: string | null;
+          runtime_minutes: number | null;
+          budget_usd: number | null;
+          aspect_ratio: string | null;
+          camera_equipment: any;
+          filming_locations: string[] | null;
+          cinematography_techniques: string[] | null;
+          micro_genres: string[] | null;
+          controversies: any;
+          cultural_movements: string[] | null;
+          cultural_influence: any;
+          academic_analysis: any;
+          awards: any;
+          technical_craftsmanship: number | null;
+          narrative_depth: number | null;
+          artistic_ambition: number | null;
+          ai_rationale: string | null;
+          critical_evolution: any;
+          dominant_colors: any;
           cinema_votes: number;
           not_cinema_votes: number;
           created_at: string;
@@ -30,6 +50,25 @@ export type Database = {
           director: string;
           year: number;
           poster: string;
+          plot?: string | null;
+          runtime_minutes?: number | null;
+          budget_usd?: number | null;
+          aspect_ratio?: string | null;
+          camera_equipment?: any;
+          filming_locations?: string[] | null;
+          cinematography_techniques?: string[] | null;
+          micro_genres?: string[] | null;
+          controversies?: any;
+          cultural_movements?: string[] | null;
+          cultural_influence?: any;
+          academic_analysis?: any;
+          awards?: any;
+          technical_craftsmanship?: number | null;
+          narrative_depth?: number | null;
+          artistic_ambition?: number | null;
+          ai_rationale?: string | null;
+          critical_evolution?: any;
+          dominant_colors?: any;
           cinema_votes?: number;
           not_cinema_votes?: number;
           created_at?: string;
@@ -41,69 +80,203 @@ export type Database = {
           director?: string;
           year?: number;
           poster?: string;
+          plot?: string | null;
+          runtime_minutes?: number | null;
+          budget_usd?: number | null;
+          aspect_ratio?: string | null;
+          camera_equipment?: any;
+          filming_locations?: string[] | null;
+          cinematography_techniques?: string[] | null;
+          micro_genres?: string[] | null;
+          controversies?: any;
+          cultural_movements?: string[] | null;
+          cultural_influence?: any;
+          academic_analysis?: any;
+          awards?: any;
+          technical_craftsmanship?: number | null;
+          narrative_depth?: number | null;
+          artistic_ambition?: number | null;
+          ai_rationale?: string | null;
+          critical_evolution?: any;
+          dominant_colors?: any;
           cinema_votes?: number;
           not_cinema_votes?: number;
           created_at?: string;
           updated_at?: string;
         };
       };
-      user_verdicts: {
+      verdicts: {
         Row: {
           id: string;
-          user_email: string;
           movie_id: number;
           verdict_type: string;
+          device_id: string | null;
+          confidence_level: number | null;
+          reasoning: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
-          user_email: string;
           movie_id: number;
           verdict_type: string;
+          device_id?: string | null;
+          confidence_level?: number | null;
+          reasoning?: string | null;
           created_at?: string;
         };
         Update: {
           id?: string;
-          user_email?: string;
           movie_id?: number;
           verdict_type?: string;
+          device_id?: string | null;
+          confidence_level?: number | null;
+          reasoning?: string | null;
+          created_at?: string;
+        };
+      };
+      cast_crew: {
+        Row: {
+          id: string;
+          name: string;
+          birth_year: number | null;
+          nationality: string | null;
+          biography: string | null;
+          filmography: any;
+          awards: any;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          birth_year?: number | null;
+          nationality?: string | null;
+          biography?: string | null;
+          filmography?: any;
+          awards?: any;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          birth_year?: number | null;
+          nationality?: string | null;
+          biography?: string | null;
+          filmography?: any;
+          awards?: any;
+          created_at?: string;
+        };
+      };
+      movie_collections: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          collection_type: string;
+          movie_ids: number[] | null;
+          display_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          collection_type: string;
+          movie_ids?: number[] | null;
+          display_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string | null;
+          collection_type?: string;
+          movie_ids?: number[] | null;
+          display_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      cinema_quotes: {
+        Row: {
+          id: string;
+          quote_text: string;
+          author: string;
+          author_role: string | null;
+          context: string | null;
+          movie_id: number | null;
+          quote_category: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          quote_text: string;
+          author: string;
+          author_role?: string | null;
+          context?: string | null;
+          movie_id?: number | null;
+          quote_category?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          quote_text?: string;
+          author?: string;
+          author_role?: string | null;
+          context?: string | null;
+          movie_id?: number | null;
+          quote_category?: string | null;
+          is_active?: boolean;
           created_at?: string;
         };
       };
     };
     Functions: {
-      increment_movie_verdict: {
+      get_random_movie: {
         Args: {
-          movie_id: number;
-          verdict_type: string;
-        };
-        Returns: void;
-      };
-      has_user_already_judged: {
-        Args: {
-          p_user_email: string;
-          p_movie_id: number;
-        };
-        Returns: boolean;
-      };
-      record_user_verdict: {
-        Args: {
-          p_user_email: string;
-          p_movie_id: number;
-          p_verdict_type: string;
         };
         Returns: {
-          success: boolean;
-          error?: string;
-          message?: string;
-        };
+          id: number;
+          title: string;
+          director: string;
+          year: number;
+          poster: string;
+          plot: string;
+          runtime_minutes: number;
+          micro_genres: string[];
+          cinema_votes: number;
+          not_cinema_votes: number;
+          ai_rationale: string;
+          dominant_colors: any;
+        }[];
       };
-      get_user_verdict: {
+      get_personalized_recommendations: {
         Args: {
-          p_user_email: string;
-          p_movie_id: number;
+          user_device_id: string;
+          limit_count?: number;
         };
-        Returns: string;
+        Returns: {
+          id: number;
+          title: string;
+          director: string;
+          year: number;
+          poster: string;
+          micro_genres: string[];
+          cinema_votes: number;
+          not_cinema_votes: number;
+          recommendation_score: number;
+        }[];
+      };
+      refresh_top_cinema_movies: {
+        Args: {
+        };
+        Returns: void;
       };
     };
   };
