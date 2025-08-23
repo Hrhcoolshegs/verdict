@@ -258,7 +258,17 @@
   border: 3px solid rgba(0, 224, 255, 0.1);
   border-top: 3px solid #00E0FF;
   border-radius: 50%;
-  animation: filmReelSpin 1s linear infinite, projectorFlicker 2s ease-in-out infinite;
+  animation: filmReelSpin 0.8s linear infinite, projectorFlicker 2s ease-in-out infinite;
+  position: relative;
+}
+
+.projector-loading::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 40%, rgba(0, 224, 255, 0.1) 60%);
+  animation: filmReelSpin 1.2s linear infinite reverse;
 }
 
 .film-loading-skeleton {

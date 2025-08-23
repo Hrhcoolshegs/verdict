@@ -49,6 +49,11 @@ const CommunityPoll: React.FC = () => {
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [isSwipeCommitted, setIsSwipeCommitted] = useState(false);
 
+  const [gestureRecognized, setGestureRecognized] = useState(false);
+  const [hapticFeedback, setHapticFeedback] = useState(false);
+  const [swipeVelocity, setSwipeVelocity] = useState(0);
+  const [lastTouchTime, setLastTouchTime] = useState(0);
+  const [lastTouchX, setLastTouchX] = useState(0);
   // Load movies on component mount
   React.useEffect(() => {
     const loadMovies = async () => {
