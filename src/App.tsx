@@ -6,6 +6,7 @@ import NarrativeText from './components/NarrativeText';
 import CommunityPoll from './components/CommunityPoll';
 import Footer from './components/Footer';
 import GalaxyBackground from './components/GalaxyBackground';
+import DatabaseSeeder from './components/DatabaseSeeder';
 
 function App() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
@@ -49,6 +50,9 @@ function App() {
         <NarrativeText />
         <CommunityPoll />
         <Footer />
+        
+        {/* Database Seeder - only show in development */}
+        {import.meta.env.DEV && <DatabaseSeeder />}
       </div>
     </div>
   );

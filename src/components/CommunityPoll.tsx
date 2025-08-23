@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, X, Trophy, Medal, Award, TrendingUp, Trendin
 import { fetchMovies, calculateCinemaPercentage, isMovieCinema, recordUserVerdict, hasUserAlreadyJudged, getUserVerdict, type Movie } from '../data/movies';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
+import MovieDetailsModal from './MovieDetailsModal';
 
 // Lazy loading image component
 const LazyImage: React.FC<{ src: string; alt: string; className: string }> = ({ src, alt, className }) => {
@@ -78,6 +79,10 @@ const CommunityPoll: React.FC = () => {
   const [showNonBlockingEmailPrompt, setShowNonBlockingEmailPrompt] = useState(false);
 
   const SWIPE_THRESHOLD = typeof window !== 'undefined' ? window.innerWidth / 4 : 100;
+
+  // New state for movie details modal
+  const [selectedMovieForDetails, setSelectedMovieForDetails] = useState<Movie | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   // Load movies on component mount
   React.useEffect(() => {
@@ -346,6 +351,11 @@ const CommunityPoll: React.FC = () => {
     } finally {
       setIsSubmittingEmailVerdict(false);
     }
+  };
+
+  const handleMovieClick = (movie: Movie) => {
+    setSelectedMovieForDetails(movie);
+    setShowDetailsModal(true);
   };
 
   const sortedMovies = [...movies].sort((a, b) => {
@@ -682,7 +692,10 @@ const CommunityPoll: React.FC = () => {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="p-3 sm:p-4 flex-shrink-0">
+                      <div 
+                        className="p-3 sm:p-4 flex-shrink-0 cursor-pointer hover:bg-[rgba(0,224,255,0.05)] transition-colors"
+                        onClick={() => handleMovieClick(movie)}
+                      >
                         <h3 className="font-bold text-base sm:text-lg text-[#00E0FF] truncate">
                           {movie.title}
                         </h3>
@@ -692,6 +705,18 @@ const CommunityPoll: React.FC = () => {
                         <p className="text-xs text-[#00E0FF] mt-1">
                           {calculateCinemaPercentage(movie)}% say Cinema
                         </p>
+                        {movie.micro_genres && movie.micro_genres.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {movie.micro_genres.slice(0, 2).map((genre, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-1 bg-[rgba(0,224,255,0.1)] rounded text-xs text-[#00E0FF]"
+                              >
+                                {genre.replace(/-/g, ' ')}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -807,7 +832,10 @@ const CommunityPoll: React.FC = () => {
                         : 'border border-[rgba(255,215,0,0.1)] hover:border-[#FFD700]'
                     }`}
                   >
-                    <div className="flex items-start gap-3 sm:gap-4">
+                    <div 
+                      className="flex items-start gap-3 sm:gap-4 cursor-pointer"
+                      onClick={() => handleMovieClick(movie)}
+                    >
                       <div className="w-12 h-16 sm:w-16 sm:h-20 rounded-lg overflow-hidden flex-shrink-0">
                         <LazyImage
                           src={movie.poster}
@@ -816,7 +844,7 @@ const CommunityPoll: React.FC = () => {
                         />
                       </div>
                       
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 hover:bg-[rgba(0,224,255,0.02)] rounded p-2 -m-2 transition-colors">
                         <div className="flex items-start justify-between mb-2 flex-wrap gap-2">
                           <div className="flex items-center gap-3">
                             <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold bg-[rgba(0,224,255,0.1)] text-[#00E0FF]">
@@ -847,8 +875,30 @@ const CommunityPoll: React.FC = () => {
                           {movie.director} • {movie.year}
                         </p>
 
+                        {/* Enhanced metadata preview */}
+                        {movie.micro_genres && movie.micro_genres.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {movie.micro_genres.slice(0, 2).map((genre, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-1 bg-[rgba(0,224,255,0.1)] rounded text-xs text-[#00E0FF]"
+                              >
+                                {genre.replace(/-/g, ' ')}
+                              </span>
+                            ))}
+                            {movie.micro_genres.length > 2 && (
+                              <span className="px-2 py-1 bg-[rgba(0,224,255,0.05)] rounded text-xs text-[#A6A9B3]">
+                                +{movie.micro_genres.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                         <div className="flex items-center justify-between text-xs text-[#A6A9B3] mb-3">
                           <span>{(movie.cinemaVotes + movie.notCinemaVotes).toLocaleString()} votes</span>
+                          {movie.runtime_minutes && (
+                            <span>{Math.floor(movie.runtime_minutes / 60)}h {movie.runtime_minutes % 60}m</span>
+                          )}
                           <span className={`font-medium ${
                             isCinema ? 'text-[#00E0FF]' : 'text-[#FFD700]'
                           }`}>
@@ -939,6 +989,16 @@ const CommunityPoll: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Movie Details Modal */}
+      <MovieDetailsModal
+        movie={selectedMovieForDetails}
+        isOpen={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false);
+          setSelectedMovieForDetails(null);
+        }}
+      />
     </section>
   );
 };
