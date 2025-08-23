@@ -865,41 +865,41 @@ const CommunityPoll: React.FC = () => {
                             </div>
                           )}
                         </div>
-                      </div>
-                      <div 
-                        className="p-3 sm:p-4 flex-shrink-0 cursor-pointer hover:bg-[rgba(0,224,255,0.05)] transition-all duration-300 relative z-10"
-                        onClick={() => handleMovieClick(movie)}
-                        onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
-                      >
-                        <h3 className="cinema-title text-base sm:text-lg text-[#00E0FF] truncate text-shadow-cinema">
-                          {movie.title}
-                        </h3>
-                        <p className="director-credit text-xs sm:text-sm text-[#A6A9B3] truncate">
-                          {movie.director} • {movie.year}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <div 
-                            className="film-reel-progress"
-                            style={{ '--progress': `${calculateCinemaPercentage(movie)}%` } as React.CSSProperties}
-                          >
-                            <span className="film-reel-center text-[#00E0FF]">
-                              {calculateCinemaPercentage(movie)}%
-                            </span>
-                          </div>
-                          <span className="text-xs text-[#A6A9B3]">say Cinema</span>
-                        </div>
-                        {movie.micro_genres && movie.micro_genres.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {movie.micro_genres.slice(0, 2).map((genre, idx) => (
-                              <span
-                                key={idx}
-                                className={`px-2 py-1 rounded text-xs text-[#00E0FF] genre-icon-${genre.split('-')[0]} bg-opacity-20 border border-opacity-30`}
-                              >
-                                {genre.replace(/-/g, ' ')}
+                        <div 
+                          className="p-3 sm:p-4 flex-shrink-0 cursor-pointer hover:bg-[rgba(0,224,255,0.05)] transition-all duration-300 relative z-10"
+                          onClick={() => handleMovieClick(movie)}
+                          onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
+                        >
+                          <h3 className="cinema-title text-base sm:text-lg text-[#00E0FF] truncate text-shadow-cinema">
+                            {movie.title}
+                          </h3>
+                          <p className="director-credit text-xs sm:text-sm text-[#A6A9B3] truncate">
+                            {movie.director} • {movie.year}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <div 
+                              className="film-reel-progress"
+                              style={{ '--progress': `${calculateCinemaPercentage(movie)}%` } as React.CSSProperties}
+                            >
+                              <span className="film-reel-center text-[#00E0FF]">
+                                {calculateCinemaPercentage(movie)}%
                               </span>
-                            ))}
+                            </div>
+                            <span className="text-xs text-[#A6A9B3]">say Cinema</span>
                           </div>
-                        )}
+                          {movie.micro_genres && movie.micro_genres.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {movie.micro_genres.slice(0, 2).map((genre, idx) => (
+                                <span
+                                  key={idx}
+                                  className={`px-2 py-1 rounded text-xs text-[#00E0FF] genre-icon-${genre.split('-')[0]} bg-opacity-20 border border-opacity-30`}
+                                >
+                                  {genre.replace(/-/g, ' ')}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -928,7 +928,7 @@ const CommunityPoll: React.FC = () => {
               <button
                 onClick={() => handleVote(movies[currentIndex]?.id, 'cinema')}
                 disabled={isSubmittingVerdict || !movies[currentIndex] || userVerdicts[movies[currentIndex]?.id] || (showEmailPrompt && showEmailPrompt.movieId === movies[currentIndex]?.id)}
-                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cinema-card-enhanced transform hover:scale-110 active:scale-95 ${
+                className={\`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cinema-card-enhanced transform hover:scale-110 active:scale-95 ${
                   userVerdicts[movies[currentIndex]?.id] === 'cinema' 
                     ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF] scale-110 cinema-glow' 
                     : 'bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] hover:scale-110 focus:ring-[#00E0FF] disabled:opacity-50 cinema-glow'
@@ -990,7 +990,7 @@ const CommunityPoll: React.FC = () => {
                       setSelectedCategory(category);
                       setCurrentPage(0);
                     }}
-                    className={`px-2 sm:px-3 py-1 rounded text-xs font-medium transition-colors ${
+                    className={\`px-2 sm:px-3 py-1 rounded text-xs font-medium transition-colors ${
                       selectedCategory === category
                         ? 'bg-[#00E0FF] text-[#0B0B10]'
                         : 'text-[#A6A9B3] hover:text-[#F2F4F8]'
@@ -1011,7 +1011,7 @@ const CommunityPoll: React.FC = () => {
                 return (
                   <div
                     key={movie.id}
-                    className={`bg-[rgba(16,18,24,0.4)] rounded-xl p-3 sm:p-4 transition-all duration-300 cinema-card-enhanced film-grain ${
+                    className={\`bg-[rgba(16,18,24,0.4)] rounded-xl p-3 sm:p-4 transition-all duration-300 cinema-card-enhanced film-grain ${
                       isCinema 
                         ? 'border border-[rgba(0,224,255,0.1)] hover:border-[#00E0FF] cinema-glow' 
                         : 'border border-[rgba(255,215,0,0.1)] hover:border-[#FFD700] not-cinema-matte'
@@ -1043,7 +1043,7 @@ const CommunityPoll: React.FC = () => {
                             <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold bg-[rgba(0,224,255,0.1)] text-[#00E0FF] cinema-border">
                               {rank <= 3 ? getRankIcon(rank - 1) : rank}
                             </div>
-                            <div className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                            <div className={\`px-2 sm:px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
                               isCinema 
                                 ? 'bg-[#00E0FF] text-[#0B0B10] cinema-glow' 
                                 : 'bg-[#FFD700] text-[#0B0B10] not-cinema-matte'
@@ -1053,9 +1053,9 @@ const CommunityPoll: React.FC = () => {
                           </div>
 
                           <div className="text-right parallax-slow">
-                            <div className={`film-reel-progress ${
+                            <div className={\`film-reel-progress ${
                               isCinema ? 'text-[#00E0FF]' : 'text-[#FFD700]'
-                            }`} style={{ '--progress': `${cinemaPercentage}%` } as React.CSSProperties}>
+                            }`} style={{ '--progress': \`${cinemaPercentage}%` } as React.CSSProperties}>
                               <span className="film-reel-center">
                                 {cinemaPercentage}%
                               </span>
@@ -1076,7 +1076,7 @@ const CommunityPoll: React.FC = () => {
                             {movie.micro_genres.slice(0, 2).map((genre, idx) => (
                               <span
                                 key={idx}
-                                className={`px-2 py-1 rounded text-xs text-[#00E0FF] genre-icon-${genre.split('-')[0]} bg-opacity-20 border border-opacity-30 transition-all duration-300`}
+                                className={\`px-2 py-1 rounded text-xs text-[#00E0FF] genre-icon-${genre.split('-')[0]} bg-opacity-20 border border-opacity-30 transition-all duration-300`}
                               >
                                 {genre.replace(/-/g, ' ')}
                               </span>
@@ -1094,7 +1094,7 @@ const CommunityPoll: React.FC = () => {
                           {movie.runtime_minutes && (
                             <span>{Math.floor(movie.runtime_minutes / 60)}h {movie.runtime_minutes % 60}m</span>
                           )}
-                          <span className={`font-medium cinema-title ${
+                          <span className={\`font-medium cinema-title ${
                             isCinema ? 'text-[#00E0FF]' : 'text-[#FFD700]'
                           }`}>
                             #{rank}
@@ -1105,7 +1105,7 @@ const CommunityPoll: React.FC = () => {
                           <button
                             onClick={() => handleVoteAction(movie.id, 'cinema')}
                             disabled={isSubmittingVerdict || userVerdicts[movie.id] || (showEmailPrompt && showEmailPrompt.movieId === movie.id)}
-                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative cinema-card-enhanced transform hover:scale-105 active:scale-95 ${
+                            className={\`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative cinema-card-enhanced transform hover:scale-105 active:scale-95 ${
                               userVerdicts[movie.id] === 'cinema'
                                 ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF] cinema-glow'
                                 : 'bg-[rgba(0,224,255,0.1)] hover:bg-[rgba(0,224,255,0.2)] text-[#00E0FF] focus:ring-[#00E0FF] cinema-glow'
@@ -1126,7 +1126,7 @@ const CommunityPoll: React.FC = () => {
                           <button
                             onClick={() => handleVoteAction(movie.id, 'not-cinema')}
                             disabled={isSubmittingVerdict || userVerdicts[movie.id] || (showEmailPrompt && showEmailPrompt.movieId === movie.id)}
-                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative cinema-card-enhanced transform hover:scale-105 active:scale-95 ${
+                            className={\`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative cinema-card-enhanced transform hover:scale-105 active:scale-95 ${
                               userVerdicts[movie.id] === 'not-cinema'
                                 ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700] not-cinema-matte'
                                 : 'bg-[rgba(255,215,0,0.1)] hover:bg-[rgba(255,215,0,0.2)] text-[#FFD700] focus:ring-[#FFD700] not-cinema-matte'
