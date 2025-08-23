@@ -43,6 +43,12 @@ const CommunityPoll: React.FC = () => {
   const [hoveredMovieId, setHoveredMovieId] = useState<number | null>(null);
   const [dynamicColors, setDynamicColors] = useState<Record<number, string>>({});
 
+  // Enhanced swipe physics state
+  const [swipeVelocity, setSwipeVelocity] = useState(0);
+  const [lastTouchTime, setLastTouchTime] = useState(0);
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [isSwipeCommitted, setIsSwipeCommitted] = useState(false);
+
   // Load movies on component mount
   React.useEffect(() => {
     const loadMovies = async () => {
@@ -363,12 +369,24 @@ const CommunityPoll: React.FC = () => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    for (let i = 0; i < 5; i++) {
+    // Enhanced particle system
+    const particleCount = Math.random() * 8 + 5; // 5-13 particles
+    
+    for (let i = 0; i < particleCount; i++) {
       const particle = document.createElement('div');
       particle.className = 'particle-trail';
-      particle.style.left = `${x}px`;
-      particle.style.top = `${y}px`;
+      
+      // Add randomized starting positions
+      const offsetX = (Math.random() - 0.5) * 20;
+      const offsetY = (Math.random() - 0.5) * 20;
+      particle.style.left = `${x + offsetX}px`;
+      particle.style.top = `${y + offsetY}px`;
       particle.style.animationDelay = `${i * 0.1}s`;
+      
+      // Randomize particle colors
+      const colors = ['#00E0FF', '#00BFFF', '#87CEEB', '#FFD700'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      particle.style.background = `radial-gradient(circle, ${color} 0%, transparent 70%)`;
       
       element.appendChild(particle);
       
@@ -376,8 +394,14 @@ const CommunityPoll: React.FC = () => {
         if (particle.parentNode) {
           particle.parentNode.removeChild(particle);
         }
-      }, 1000);
+      }, 1200);
     }
+    
+    // Add haptic feedback class
+    element.classList.add('haptic-feedback');
+    setTimeout(() => {
+      element.classList.remove('haptic-feedback');
+    }, 200);
   };
 
   const sortedMovies = [...movies].sort((a, b) => {
@@ -636,6 +660,10 @@ const CommunityPoll: React.FC = () => {
                   setCurrentX(touch.clientX);
                   setIsSwiping(true);
                   setCardTransition('none');
+                  setLastTouchTime(Date.now());
+                  setSwipeVelocity(0);
+                  setSwipeDirection(null);
+                  setIsSwipeCommitted(false);
                 };
                 
                 const handleTouchMove = (e: React.TouchEvent) => {
@@ -643,27 +671,90 @@ const CommunityPoll: React.FC = () => {
                   
                   const touch = e.touches[0];
                   const deltaX = touch.clientX - startX;
-                  const rotation = (deltaX / window.innerWidth) * 20; // Max 20 degrees rotation
+                  const now = Date.now();
+                  const timeDelta = now - lastTouchTime;
+                  
+                  // Calculate velocity for physics-based feedback
+                  if (timeDelta > 0) {
+                    const velocity = Math.abs(deltaX) / timeDelta;
+                    setSwipeVelocity(velocity);
+                  }
+                  
+                  // Enhanced rotation with physics
+                  const maxRotation = 25;
+                  const rotationFactor = Math.min(Math.abs(deltaX) / (window.innerWidth * 0.3), 1);
+                  const rotation = Math.sign(deltaX) * rotationFactor * maxRotation;
+                  
+                  // Add subtle scale effect based on swipe distance
+                  const scaleFactor = 1 + (Math.abs(deltaX) / window.innerWidth) * 0.05;
+                  
+                  // Determine swipe direction for visual feedback
+                  const direction = deltaX > 0 ? 'right' : 'left';
+                  setSwipeDirection(direction);
+                  
+                  // Add opacity fade for dramatic effect
+                  const opacity = Math.max(0.7, 1 - (Math.abs(deltaX) / window.innerWidth) * 0.3);
                   
                   setCurrentX(touch.clientX);
-                  setCardTransform(`translateX(${deltaX}px) rotate(${rotation}deg)`);
+                  setCardTransform(`translateX(${deltaX}px) rotate(${rotation}deg) scale(${scaleFactor}) translateZ(${Math.abs(deltaX) * 0.1}px)`);
+                  
+                  // Update card style for visual feedback
+                  const cardElement = e.currentTarget as HTMLElement;
+                  cardElement.style.opacity = opacity.toString();
+                  
+                  // Add color tint based on direction
+                  if (Math.abs(deltaX) > 50) {
+                    const tintColor = direction === 'right' ? 'rgba(0, 224, 255, 0.1)' : 'rgba(255, 215, 0, 0.1)';
+                    cardElement.style.backgroundColor = tintColor;
+                  } else {
+                    cardElement.style.backgroundColor = '';
+                  }
+                  
+                  setLastTouchTime(now);
                 };
                 
                 const handleTouchEnd = (e: React.TouchEvent) => {
                   if (!isSwiping || isSubmittingVerdict) return;
                   
                   setIsSwiping(false);
-                  setCardTransition('transform 0.3s ease-out');
+                  
+                  const cardElement = e.currentTarget as HTMLElement;
+                  cardElement.style.opacity = '';
+                  cardElement.style.backgroundColor = '';
                   
                   const deltaX = currentX - startX;
+                  const absVelocity = Math.abs(swipeVelocity);
                   
-                  if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
+                  // Enhanced threshold calculation with velocity
+                  const velocityThreshold = absVelocity > 0.5 ? SWIPE_THRESHOLD * 0.7 : SWIPE_THRESHOLD;
+                  const shouldCommit = Math.abs(deltaX) > velocityThreshold;
+                  
+                  if (shouldCommit && !isSwipeCommitted) {
+                    setIsSwipeCommitted(true);
                     const verdict = deltaX > 0 ? 'cinema' : 'not-cinema';
                     
-                    // Animate card off screen
-                    const offScreenX = Math.sign(deltaX) * window.innerWidth;
-                    const offScreenRotation = Math.sign(deltaX) * 30;
-                    setCardTransform(`translateX(${offScreenX}px) rotate(${offScreenRotation}deg)`);
+                    // Physics-based exit animation
+                    const exitVelocity = Math.max(1, absVelocity);
+                    const offScreenX = Math.sign(deltaX) * window.innerWidth * 1.2;
+                    const offScreenRotation = Math.sign(deltaX) * (30 + exitVelocity * 10);
+                    const exitScale = 0.8;
+                    
+                    // Dynamic animation duration based on velocity
+                    const animationDuration = Math.max(200, 400 - (exitVelocity * 100));
+                    setCardTransition(`transform ${animationDuration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`);
+                    setCardTransform(`translateX(${offScreenX}px) rotate(${offScreenRotation}deg) scale(${exitScale}) translateZ(100px)`);
+                    
+                    // Add haptic feedback through animation
+                    if (navigator.vibrate) {
+                      navigator.vibrate(verdict === 'cinema' ? [50, 30, 50] : [100]);
+                    }
+                    
+                    // Visual feedback flash
+                    const flashColor = verdict === 'cinema' ? 'rgba(0, 224, 255, 0.3)' : 'rgba(255, 215, 0, 0.3)';
+                    cardElement.style.boxShadow = `0 0 50px ${flashColor}`;
+                    setTimeout(() => {
+                      cardElement.style.boxShadow = '';
+                    }, animationDuration);
                     
                     // Process the vote
                     processVote(movies[currentIndex].id, verdict);
@@ -672,17 +763,37 @@ const CommunityPoll: React.FC = () => {
                     setTimeout(() => {
                       setCardTransform('');
                       setCardTransition('');
+                      setIsSwipeCommitted(false);
                       setCurrentIndex((prev) => (prev + 1) % movies.length);
-                    }, 300);
+                    }, animationDuration);
                   } else {
-                    // Snap back to center
+                    // Enhanced snap-back animation with bounce
+                    const snapDuration = 300;
+                    setCardTransition(`transform ${snapDuration}ms cubic-bezier(0.68, -0.55, 0.265, 1.55)`);
                     setCardTransform('');
+                    
+                    // Add subtle shake for failed swipe
+                    if (Math.abs(deltaX) > SWIPE_THRESHOLD * 0.5) {
+                      setTimeout(() => {
+                        setCardTransition('transform 100ms ease-in-out');
+                        setCardTransform('translateX(5px)');
+                        setTimeout(() => {
+                          setCardTransform('translateX(-5px)');
+                          setTimeout(() => {
+                            setCardTransform('');
+                            setCardTransition('');
+                          }, 50);
+                        }, 50);
+                      }, 100);
+                    }
                   }
                   
                   // Reset touch coordinates
                   setTimeout(() => {
                     setStartX(0);
                     setCurrentX(0);
+                    setSwipeVelocity(0);
+                    setSwipeDirection(null);
                   }, 300);
                 };
                 
@@ -726,11 +837,31 @@ const CommunityPoll: React.FC = () => {
                     >
                       <div className="sprocket-holes"></div>
                       <div className="flex-grow overflow-hidden">
-                        <LazyImage
-                          src={movie.poster}
-                          alt={movie.title}
-                          className="w-full h-full object-cover aspect-185"
-                        />
+                        <div className="relative overflow-hidden">
+                          <LazyImage
+                            src={movie.poster}
+                            alt={movie.title}
+                            className="w-full h-full object-cover aspect-185 transition-transform duration-300"
+                          />
+                          {/* Swipe direction indicator */}
+                          {isActive && isSwiping && swipeDirection && (
+                            <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${
+                              Math.abs(currentX - startX) > 50 ? 'opacity-100' : 'opacity-0'
+                            }`}>
+                              <div className={`w-20 h-20 rounded-full flex items-center justify-center backdrop-blur-sm border-2 ${
+                                swipeDirection === 'right' 
+                                  ? 'bg-[rgba(0,224,255,0.2)] border-[#00E0FF] cinema-glow' 
+                                  : 'bg-[rgba(255,215,0,0.2)] border-[#FFD700] not-cinema-matte'
+                              }`}>
+                                {swipeDirection === 'right' ? (
+                                  <span className="text-2xl font-bold text-[#00E0FF]">✓</span>
+                                ) : (
+                                  <X className="w-8 h-8 text-[#FFD700]" />
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div 
                         className="p-3 sm:p-4 flex-shrink-0 cursor-pointer hover:bg-[rgba(0,224,255,0.05)] transition-all duration-300 relative z-10"
@@ -778,7 +909,7 @@ const CommunityPoll: React.FC = () => {
               <button
                 onClick={() => handleVote(movies[currentIndex]?.id, 'not-cinema')}
                 disabled={isSubmittingVerdict || !movies[currentIndex] || userVerdicts[movies[currentIndex]?.id] || (showEmailPrompt && showEmailPrompt.movieId === movies[currentIndex]?.id)}
-                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cinema-card-enhanced ${
+                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cinema-card-enhanced transform hover:scale-110 active:scale-95 ${
                   userVerdicts[movies[currentIndex]?.id] === 'not-cinema' 
                     ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700] not-cinema-matte' 
                     : 'bg-[#00BFFF] hover:bg-[#0099CC] text-white hover:scale-110 focus:ring-[#00BFFF] disabled:opacity-50 cinema-glow'
@@ -786,7 +917,7 @@ const CommunityPoll: React.FC = () => {
                 onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
               >
                 {isSubmittingVerdict ? (
-                  <div className="projector-loading" />
+                  <div className="projector-loading animate-pulse" />
                 ) : (
                   <X className="w-6 h-6 sm:w-8 sm:h-8" />
                 )}
@@ -794,7 +925,7 @@ const CommunityPoll: React.FC = () => {
               <button
                 onClick={() => handleVote(movies[currentIndex]?.id, 'cinema')}
                 disabled={isSubmittingVerdict || !movies[currentIndex] || userVerdicts[movies[currentIndex]?.id] || (showEmailPrompt && showEmailPrompt.movieId === movies[currentIndex]?.id)}
-                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cinema-card-enhanced ${
+                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cinema-card-enhanced transform hover:scale-110 active:scale-95 ${
                   userVerdicts[movies[currentIndex]?.id] === 'cinema' 
                     ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF] scale-110 cinema-glow' 
                     : 'bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] hover:scale-110 focus:ring-[#00E0FF] disabled:opacity-50 cinema-glow'
@@ -802,7 +933,7 @@ const CommunityPoll: React.FC = () => {
                 onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
               >
                 {isSubmittingVerdict ? (
-                  <div className="projector-loading border-[#0B0B10]" />
+                  <div className="projector-loading border-[#0B0B10] animate-pulse" />
                 ) : (
                   <span className="text-xl sm:text-2xl font-bold">✓</span>
                 )}
@@ -971,7 +1102,7 @@ const CommunityPoll: React.FC = () => {
                           <button
                             onClick={() => handleVoteAction(movie.id, 'cinema')}
                             disabled={isSubmittingVerdict || userVerdicts[movie.id] || (showEmailPrompt && showEmailPrompt.movieId === movie.id)}
-                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative cinema-card-enhanced ${
+                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative cinema-card-enhanced transform hover:scale-105 active:scale-95 ${
                               userVerdicts[movie.id] === 'cinema'
                                 ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF] cinema-glow'
                                 : 'bg-[rgba(0,224,255,0.1)] hover:bg-[rgba(0,224,255,0.2)] text-[#00E0FF] focus:ring-[#00E0FF] cinema-glow'
@@ -979,18 +1110,20 @@ const CommunityPoll: React.FC = () => {
                             onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
                           >
                             {isSubmittingVerdict && verdictFeedback?.movieId === movie.id ? (
-                              <div className="flex items-center justify-center">
+                              <div className="flex items-center justify-center animate-pulse">
                                 <div className="projector-loading w-3 h-3 mr-2" />
-                                Cinema
+                                <span className="cinema-title">Cinema</span>
                               </div>
                             ) : (
-                              userVerdicts[movie.id] === 'cinema' ? '✓ Cinema' : 'Cinema'
+                              <span className="cinema-title">
+                                {userVerdicts[movie.id] === 'cinema' ? '✓ Cinema' : 'Cinema'}
+                              </span>
                             )}
                           </button>
                           <button
                             onClick={() => handleVoteAction(movie.id, 'not-cinema')}
                             disabled={isSubmittingVerdict || userVerdicts[movie.id] || (showEmailPrompt && showEmailPrompt.movieId === movie.id)}
-                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative cinema-card-enhanced ${
+                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative cinema-card-enhanced transform hover:scale-105 active:scale-95 ${
                               userVerdicts[movie.id] === 'not-cinema'
                                 ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700] not-cinema-matte'
                                 : 'bg-[rgba(255,215,0,0.1)] hover:bg-[rgba(255,215,0,0.2)] text-[#FFD700] focus:ring-[#FFD700] not-cinema-matte'
@@ -998,12 +1131,14 @@ const CommunityPoll: React.FC = () => {
                             onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
                           >
                             {isSubmittingVerdict && verdictFeedback?.movieId === movie.id ? (
-                              <div className="flex items-center justify-center">
+                              <div className="flex items-center justify-center animate-pulse">
                                 <div className="projector-loading w-3 h-3 mr-2 border-[#FFD700]" />
-                                Not Cinema
+                                <span className="cinema-title">Not Cinema</span>
                               </div>
                             ) : (
-                              userVerdicts[movie.id] === 'not-cinema' ? '✗ Not Cinema' : 'Not Cinema'
+                              <span className="cinema-title">
+                                {userVerdicts[movie.id] === 'not-cinema' ? '✗ Not Cinema' : 'Not Cinema'}
+                              </span>
                             )}
                           </button>
                         </div>

@@ -293,12 +293,13 @@
 /* Interactive Particle Effects */
 .particle-trail {
   position: absolute;
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
   background: radial-gradient(circle, #00E0FF 0%, transparent 70%);
   border-radius: 50%;
   pointer-events: none;
-  animation: particleFade 1s ease-out forwards;
+  animation: particleFade 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  z-index: 10;
 }
 
 @keyframes particleFade {
@@ -306,9 +307,13 @@
     opacity: 1;
     transform: scale(1);
   }
+  30% {
+    opacity: 0.8;
+    transform: scale(1.2) translateY(-10px);
+  }
   100% {
     opacity: 0;
-    transform: scale(0.3) translateY(-20px);
+    transform: scale(0.2) translateY(-30px) rotate(180deg);
   }
 }
 
@@ -320,7 +325,7 @@
 }
 
 .cinema-card-enhanced:hover {
-  transform: translateY(-8px) scale(1.02);
+  transform: translateY(-8px) scale(1.02) rotateX(2deg);
   box-shadow: 
     0 20px 40px rgba(0, 0, 0, 0.4),
     0 0 30px rgba(0, 224, 255, 0.2),
@@ -348,6 +353,129 @@
   left: 100%;
 }
 
+/* Enhanced Button Interactions */
+.cinema-button-enhanced {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.cinema-button-enhanced:active {
+  transform: scale(0.95) translateY(1px);
+}
+
+.cinema-button-enhanced::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.cinema-button-enhanced:active::after {
+  width: 200px;
+  height: 200px;
+}
+
+/* Physics-based Swipe Feedback */
+.swipe-feedback-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at center,
+    transparent 30%,
+    rgba(0, 0, 0, 0.1) 70%
+  );
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.swipe-active .swipe-feedback-overlay {
+  opacity: 1;
+}
+
+/* Enhanced Loading States */
+.cinema-loading-enhanced {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cinema-loading-enhanced::before {
+  content: '';
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(0, 224, 255, 0.2);
+  border-top: 2px solid #00E0FF;
+  border-radius: 50%;
+  animation: filmReelSpin 1s linear infinite, projectorFlicker 2s ease-in-out infinite;
+}
+
+/* Gesture Recognition Visual Feedback */
+.gesture-recognized {
+  animation: gestureRecognition 0.3s ease-out;
+}
+
+@keyframes gestureRecognition {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Haptic Feedback Animation */
+.haptic-feedback {
+  animation: hapticPulse 0.2s ease-out;
+}
+
+@keyframes hapticPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); box-shadow: 0 0 20px rgba(0, 224, 255, 0.5); }
+  100% { transform: scale(1); }
+}
+
+/* Enhanced Swipe Indicators */
+.swipe-indicator {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  border: 2px solid;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  opacity: 0;
+  transform: translateY(-50%) scale(0.8);
+}
+
+.swipe-indicator.active {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+.swipe-indicator.cinema {
+  left: 20px;
+  background: rgba(0, 224, 255, 0.1);
+  border-color: #00E0FF;
+  box-shadow: 0 0 20px rgba(0, 224, 255, 0.3);
+}
+
+.swipe-indicator.not-cinema {
+  right: 20px;
+  background: rgba(255, 215, 0, 0.1);
+  border-color: #FFD700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
 /* Genre Icons */
 .genre-icon-thriller {
   background: radial-gradient(circle, #ff4757 0%, #ff3742 100%);
