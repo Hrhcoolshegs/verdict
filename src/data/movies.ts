@@ -309,7 +309,7 @@ export const searchMovies = async (
 };
 
 // Record anonymous verdict
-export const recordVerdict = async (
+export const recordUserVerdict = async (
   movieId: number,
   verdict: 'cinema' | 'not-cinema',
   confidence: number = 3,
@@ -369,7 +369,7 @@ export const recordVerdict = async (
 };
 
 // Check if device has already voted for a movie
-export const hasDeviceVoted = async (movieId: number): Promise<boolean> => {
+export const hasUserAlreadyJudged = async (movieId: number): Promise<boolean> => {
   try {
     const deviceId = getDeviceId();
     const { data, error } = await supabase
@@ -392,7 +392,7 @@ export const hasDeviceVoted = async (movieId: number): Promise<boolean> => {
 };
 
 // Get device's verdict for a movie
-export const getDeviceVerdict = async (movieId: number): Promise<'cinema' | 'not-cinema' | null> => {
+export const getUserVerdict = async (movieId: number): Promise<'cinema' | 'not-cinema' | null> => {
   try {
     const deviceId = getDeviceId();
     const { data, error } = await supabase
@@ -410,6 +410,19 @@ export const getDeviceVerdict = async (movieId: number): Promise<'cinema' | 'not
     return data?.verdict_type as 'cinema' | 'not-cinema' | null;
   } catch (error) {
     console.error('Failed to get device verdict:', error);
+    return null;
+  }
+};
+
+// Find movie by title
+export const findMovieByTitle = async (title: string): Promise<Movie | null> => {
+  try {
+    const results = await searchMovies(title);
+    return results.find(movie => 
+      movie.title.toLowerCase() === title.toLowerCase()
+    ) || null;
+  } catch (error) {
+    console.error('Failed to find movie by title:', error);
     return null;
   }
 };
