@@ -51,8 +51,6 @@ const CommunityPoll: React.FC = () => {
 
   const [gestureRecognized, setGestureRecognized] = useState(false);
   const [hapticFeedback, setHapticFeedback] = useState(false);
-  const [swipeVelocity, setSwipeVelocity] = useState(0);
-  const [lastTouchTime, setLastTouchTime] = useState(0);
   const [lastTouchX, setLastTouchX] = useState(0);
   // Load movies on component mount
   React.useEffect(() => {
@@ -666,6 +664,7 @@ const CommunityPoll: React.FC = () => {
                   setIsSwiping(true);
                   setCardTransition('none');
                   setLastTouchTime(Date.now());
+                  setLastTouchX(touch.clientX);
                   setSwipeVelocity(0);
                   setSwipeDirection(null);
                   setIsSwipeCommitted(false);
@@ -678,12 +677,11 @@ const CommunityPoll: React.FC = () => {
                   const deltaX = touch.clientX - startX;
                   const now = Date.now();
                   const timeDelta = now - lastTouchTime;
+                  const velocity = Math.abs(touch.clientX - lastTouchX) / timeDelta;
                   
-                  // Calculate velocity for physics-based feedback
-                  if (timeDelta > 0) {
-                    const velocity = Math.abs(deltaX) / timeDelta;
-                    setSwipeVelocity(velocity);
-                  }
+                  setSwipeVelocity(velocity);
+                  setLastTouchTime(now);
+                  setLastTouchX(touch.clientX);
                   
                   // Enhanced rotation with physics
                   const maxRotation = 25;
@@ -715,7 +713,19 @@ const CommunityPoll: React.FC = () => {
                     cardElement.style.backgroundColor = '';
                   }
                   
-                  setLastTouchTime(now);
+                  const progress = Math.min(Math.abs(deltaX) / SWIPE_THRESHOLD, 1);
+                  
+                  // Trigger gesture recognition feedback
+                  if (progress > 0.3 && !gestureRecognized) {
+                    setGestureRecognized(true);
+                    setTimeout(() => setGestureRecognized(false), 300);
+                  }
+                  
+                  // Trigger haptic feedback at threshold
+                  if (progress > 0.7 && !hapticFeedback) {
+                    setHapticFeedback(true);
+                    setTimeout(() => setHapticFeedback(false), 200);
+                  }
                 };
                 
                 const handleTouchEnd = (e: React.TouchEvent) => {
