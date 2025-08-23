@@ -4,52 +4,7 @@ import { fetchMovies, calculateCinemaPercentage, isMovieCinema, recordUserVerdic
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import MovieDetailsModal from './MovieDetailsModal';
-
-// Lazy loading image component
-const LazyImage: React.FC<{ src: string; alt: string; className: string }> = ({ src, alt, className }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [isInView, setIsInView] = useState(false);
-  const imgRef = React.useRef<HTMLImageElement>(null);
-
-  React.useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsInView(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={imgRef} className={`${className} bg-gray-800 flex items-center justify-center`}>
-      {isInView && (
-        <img
-          src={src}
-          alt={alt}
-          className={`${className} transition-opacity duration-300 ${
-            isLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
-          onLoad={() => setIsLoaded(true)}
-          loading="lazy"
-        />
-      )}
-      {!isLoaded && isInView && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      )}
-    </div>
-  );
-};
+import LazyImage from './LazyImage';
 
 const CommunityPoll: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -83,6 +38,10 @@ const CommunityPoll: React.FC = () => {
   // New state for movie details modal
   const [selectedMovieForDetails, setSelectedMovieForDetails] = useState<Movie | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  // Enhanced visual state
+  const [hoveredMovieId, setHoveredMovieId] = useState<number | null>(null);
+  const [dynamicColors, setDynamicColors] = useState<Record<number, string>>({});
 
   // Load movies on component mount
   React.useEffect(() => {
@@ -356,6 +315,69 @@ const CommunityPoll: React.FC = () => {
   const handleMovieClick = (movie: Movie) => {
     setSelectedMovieForDetails(movie);
     setShowDetailsModal(true);
+  };
+
+  // Extract dominant color from movie poster
+  const extractDominantColor = async (imageUrl: string, movieId: number) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        let r = 0, g = 0, b = 0;
+        const sampleSize = 10;
+        
+        for (let i = 0; i < data.length; i += 4 * sampleSize) {
+          r += data[i];
+          g += data[i + 1];
+          b += data[i + 2];
+        }
+        
+        const pixelCount = data.length / (4 * sampleSize);
+        r = Math.floor(r / pixelCount);
+        g = Math.floor(g / pixelCount);
+        b = Math.floor(b / pixelCount);
+        
+        const dominantColor = `rgb(${r}, ${g}, ${b})`;
+        setDynamicColors(prev => ({ ...prev, [movieId]: dominantColor }));
+      };
+      img.src = imageUrl;
+    } catch (error) {
+      console.log('Could not extract color from image:', error);
+    }
+  };
+
+  // Create particle effect on interaction
+  const createParticleEffect = (e: React.MouseEvent, element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    for (let i = 0; i < 5; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle-trail';
+      particle.style.left = `${x}px`;
+      particle.style.top = `${y}px`;
+      particle.style.animationDelay = `${i * 0.1}s`;
+      
+      element.appendChild(particle);
+      
+      setTimeout(() => {
+        if (particle.parentNode) {
+          particle.parentNode.removeChild(particle);
+        }
+      }, 1000);
+    }
   };
 
   const sortedMovies = [...movies].sort((a, b) => {
@@ -667,9 +689,17 @@ const CommunityPoll: React.FC = () => {
                 return (
                   <div
                     key={movie.id}
+                    className="cinema-card-3d"
                     onTouchStart={isActive ? handleTouchStart : undefined}
                     onTouchMove={isActive ? handleTouchMove : undefined}
                     onTouchEnd={isActive ? handleTouchEnd : undefined}
+                    onMouseEnter={() => {
+                      setHoveredMovieId(movie.id);
+                      if (!dynamicColors[movie.id]) {
+                        extractDominantColor(movie.poster, movie.id);
+                      }
+                    }}
+                    onMouseLeave={() => setHoveredMovieId(null)}
                     className={`absolute inset-0 transition-all duration-300 transform ${
                       isActive 
                         ? 'scale-100 z-20 rotate-0' 
@@ -678,39 +708,58 @@ const CommunityPoll: React.FC = () => {
                           : offset === -1
                             ? 'scale-95 z-10 -rotate-2 -translate-x-4'
                             : 'scale-90 z-0 opacity-0'
-                    }`}
+                    } cinema-card-3d`}
                     style={isActive && (cardTransform || cardTransition) ? {
                       transform: cardTransform || undefined,
                       transition: cardTransition || undefined
                     } : undefined}
                   >
-                    <div className="bg-[rgba(16,18,24,0.8)] backdrop-blur-xl border border-[rgba(255,215,0,0.1)] rounded-2xl overflow-hidden shadow-2xl h-full cursor-pointer hover:border-[#FFD700] transition-colors flex flex-col">
+                    <div 
+                      className={`card-inner bg-[rgba(16,18,24,0.8)] backdrop-blur-cinema border border-[rgba(255,215,0,0.1)] rounded-2xl overflow-hidden shadow-2xl h-full cursor-pointer transition-all duration-500 flex flex-col film-strip-border film-grain cinema-card-enhanced ${
+                        hoveredMovieId === movie.id ? 'border-[#FFD700]' : ''
+                      }`}
+                      style={{
+                        borderColor: hoveredMovieId === movie.id && dynamicColors[movie.id] 
+                          ? dynamicColors[movie.id] 
+                          : undefined
+                      }}
+                    >
+                      <div className="sprocket-holes"></div>
                       <div className="flex-grow overflow-hidden">
                         <LazyImage
                           src={movie.poster}
                           alt={movie.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover aspect-185"
                         />
                       </div>
                       <div 
-                        className="p-3 sm:p-4 flex-shrink-0 cursor-pointer hover:bg-[rgba(0,224,255,0.05)] transition-colors"
+                        className="p-3 sm:p-4 flex-shrink-0 cursor-pointer hover:bg-[rgba(0,224,255,0.05)] transition-all duration-300 relative z-10"
                         onClick={() => handleMovieClick(movie)}
+                        onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
                       >
-                        <h3 className="font-bold text-base sm:text-lg text-[#00E0FF] truncate">
+                        <h3 className="cinema-title text-base sm:text-lg text-[#00E0FF] truncate text-shadow-cinema">
                           {movie.title}
                         </h3>
-                        <p className="text-xs sm:text-sm text-[#A6A9B3] truncate">
+                        <p className="director-credit text-xs sm:text-sm text-[#A6A9B3] truncate">
                           {movie.director} • {movie.year}
                         </p>
-                        <p className="text-xs text-[#00E0FF] mt-1">
-                          {calculateCinemaPercentage(movie)}% say Cinema
-                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div 
+                            className="film-reel-progress"
+                            style={{ '--progress': `${calculateCinemaPercentage(movie)}%` } as React.CSSProperties}
+                          >
+                            <span className="film-reel-center text-[#00E0FF]">
+                              {calculateCinemaPercentage(movie)}%
+                            </span>
+                          </div>
+                          <span className="text-xs text-[#A6A9B3]">say Cinema</span>
+                        </div>
                         {movie.micro_genres && movie.micro_genres.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {movie.micro_genres.slice(0, 2).map((genre, idx) => (
                               <span
                                 key={idx}
-                                className="px-2 py-1 bg-[rgba(0,224,255,0.1)] rounded text-xs text-[#00E0FF]"
+                                className={`px-2 py-1 rounded text-xs text-[#00E0FF] genre-icon-${genre.split('-')[0]} bg-opacity-20 border border-opacity-30`}
                               >
                                 {genre.replace(/-/g, ' ')}
                               </span>
@@ -729,14 +778,15 @@ const CommunityPoll: React.FC = () => {
               <button
                 onClick={() => handleVote(movies[currentIndex]?.id, 'not-cinema')}
                 disabled={isSubmittingVerdict || !movies[currentIndex] || userVerdicts[movies[currentIndex]?.id] || (showEmailPrompt && showEmailPrompt.movieId === movies[currentIndex]?.id)}
-                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
+                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cinema-card-enhanced ${
                   userVerdicts[movies[currentIndex]?.id] === 'not-cinema' 
-                    ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700]' 
-                    : 'bg-[#00BFFF] hover:bg-[#0099CC] text-white hover:scale-110 focus:ring-[#00BFFF] disabled:opacity-50'
+                    ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700] not-cinema-matte' 
+                    : 'bg-[#00BFFF] hover:bg-[#0099CC] text-white hover:scale-110 focus:ring-[#00BFFF] disabled:opacity-50 cinema-glow'
                 }`}
+                onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
               >
                 {isSubmittingVerdict ? (
-                  <div className="w-4 h-4 sm:w-6 sm:h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="projector-loading" />
                 ) : (
                   <X className="w-6 h-6 sm:w-8 sm:h-8" />
                 )}
@@ -744,14 +794,15 @@ const CommunityPoll: React.FC = () => {
               <button
                 onClick={() => handleVote(movies[currentIndex]?.id, 'cinema')}
                 disabled={isSubmittingVerdict || !movies[currentIndex] || userVerdicts[movies[currentIndex]?.id] || (showEmailPrompt && showEmailPrompt.movieId === movies[currentIndex]?.id)}
-                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
+                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cinema-card-enhanced ${
                   userVerdicts[movies[currentIndex]?.id] === 'cinema' 
-                    ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF] scale-110' 
-                    : 'bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] hover:scale-110 focus:ring-[#00E0FF] disabled:opacity-50'
+                    ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF] scale-110 cinema-glow' 
+                    : 'bg-[#00E0FF] hover:bg-[#00C0E0] text-[#0B0B10] hover:scale-110 focus:ring-[#00E0FF] disabled:opacity-50 cinema-glow'
                 }`}
+                onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
               >
                 {isSubmittingVerdict ? (
-                  <div className="w-4 h-4 sm:w-6 sm:h-6 border-2 border-[#0B0B10] border-t-transparent rounded-full animate-spin" />
+                  <div className="projector-loading border-[#0B0B10]" />
                 ) : (
                   <span className="text-xl sm:text-2xl font-bold">✓</span>
                 )}
@@ -790,9 +841,9 @@ const CommunityPoll: React.FC = () => {
           </div>
 
           {/* Cinema Billboard */}
-          <div className="bg-[rgba(16,18,24,0.6)] backdrop-blur-xl border border-[rgba(255,215,0,0.1)] rounded-2xl p-4 sm:p-6 lg:p-8">
+          <div className="bg-[rgba(16,18,24,0.6)] backdrop-blur-cinema border border-[rgba(255,215,0,0.1)] rounded-2xl p-4 sm:p-6 lg:p-8 film-grain cinema-border">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl sm:text-2xl font-bold font-space-grotesk text-[#00E0FF]">
+              <h3 className="cinema-title text-xl sm:text-2xl text-[#00E0FF] text-shadow-cinema">
                 Cinema Billboard
               </h3>
               
@@ -826,52 +877,62 @@ const CommunityPoll: React.FC = () => {
                 return (
                   <div
                     key={movie.id}
-                    className={`bg-[rgba(16,18,24,0.4)] rounded-xl p-3 sm:p-4 transition-colors ${
+                    className={`bg-[rgba(16,18,24,0.4)] rounded-xl p-3 sm:p-4 transition-all duration-300 cinema-card-enhanced film-grain ${
                       isCinema 
-                        ? 'border border-[rgba(0,224,255,0.1)] hover:border-[#00E0FF]' 
-                        : 'border border-[rgba(255,215,0,0.1)] hover:border-[#FFD700]'
+                        ? 'border border-[rgba(0,224,255,0.1)] hover:border-[#00E0FF] cinema-glow' 
+                        : 'border border-[rgba(255,215,0,0.1)] hover:border-[#FFD700] not-cinema-matte'
                     }`}
+                    onMouseEnter={() => {
+                      setHoveredMovieId(movie.id);
+                      if (!dynamicColors[movie.id]) {
+                        extractDominantColor(movie.poster, movie.id);
+                      }
+                    }}
+                    onMouseLeave={() => setHoveredMovieId(null)}
                   >
                     <div 
-                      className="flex items-start gap-3 sm:gap-4 cursor-pointer"
+                      className="flex items-start gap-3 sm:gap-4 cursor-pointer perspective-1000"
                       onClick={() => handleMovieClick(movie)}
+                      onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
                     >
-                      <div className="w-12 h-16 sm:w-16 sm:h-20 rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="w-12 h-16 sm:w-16 sm:h-20 rounded-lg overflow-hidden flex-shrink-0 film-strip-border">
                         <LazyImage
                           src={movie.poster}
                           alt={movie.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover aspect-185"
                         />
                       </div>
                       
-                      <div className="flex-1 min-w-0 hover:bg-[rgba(0,224,255,0.02)] rounded p-2 -m-2 transition-colors">
+                      <div className="flex-1 min-w-0 hover:bg-[rgba(0,224,255,0.02)] rounded p-2 -m-2 transition-all duration-300 transform-3d">
                         <div className="flex items-start justify-between mb-2 flex-wrap gap-2">
                           <div className="flex items-center gap-3">
-                            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold bg-[rgba(0,224,255,0.1)] text-[#00E0FF]">
+                            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold bg-[rgba(0,224,255,0.1)] text-[#00E0FF] cinema-border">
                               {rank <= 3 ? getRankIcon(rank - 1) : rank}
                             </div>
-                            <div className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
+                            <div className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
                               isCinema 
-                                ? 'bg-[#00E0FF] text-[#0B0B10]' 
-                                : 'bg-[#FFD700] text-[#0B0B10]'
+                                ? 'bg-[#00E0FF] text-[#0B0B10] cinema-glow' 
+                                : 'bg-[#FFD700] text-[#0B0B10] not-cinema-matte'
                             }`}>
                               <span className="hidden sm:inline">Says it's </span>{isCinema ? 'Cinema' : 'NOT Cinema'}
                             </div>
                           </div>
 
-                          <div className="text-right">
-                            <div className={`text-xl font-bold ${
+                          <div className="text-right parallax-slow">
+                            <div className={`film-reel-progress ${
                               isCinema ? 'text-[#00E0FF]' : 'text-[#FFD700]'
-                            }`}>
-                              {cinemaPercentage}%
+                            }`} style={{ '--progress': `${cinemaPercentage}%` } as React.CSSProperties}>
+                              <span className="film-reel-center">
+                                {cinemaPercentage}%
+                              </span>
                             </div>
                           </div>
                         </div>
 
-                        <h4 className="font-bold font-space-grotesk text-sm sm:text-base text-[#F2F4F8] mb-1 truncate">
+                        <h4 className="cinema-title text-sm sm:text-base text-[#F2F4F8] mb-1 truncate text-shadow-cinema">
                           {movie.title}
                         </h4>
-                        <p className="text-xs sm:text-sm text-[#A6A9B3] mb-3 truncate">
+                        <p className="director-credit text-xs sm:text-sm text-[#A6A9B3] mb-3 truncate">
                           {movie.director} • {movie.year}
                         </p>
 
@@ -881,25 +942,25 @@ const CommunityPoll: React.FC = () => {
                             {movie.micro_genres.slice(0, 2).map((genre, idx) => (
                               <span
                                 key={idx}
-                                className="px-2 py-1 bg-[rgba(0,224,255,0.1)] rounded text-xs text-[#00E0FF]"
+                                className={`px-2 py-1 rounded text-xs text-[#00E0FF] genre-icon-${genre.split('-')[0]} bg-opacity-20 border border-opacity-30 transition-all duration-300`}
                               >
                                 {genre.replace(/-/g, ' ')}
                               </span>
                             ))}
                             {movie.micro_genres.length > 2 && (
-                              <span className="px-2 py-1 bg-[rgba(0,224,255,0.05)] rounded text-xs text-[#A6A9B3]">
+                              <span className="px-2 py-1 bg-[rgba(0,224,255,0.05)] rounded text-xs text-[#A6A9B3] parallax-fast">
                                 +{movie.micro_genres.length - 2}
                               </span>
                             )}
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between text-xs text-[#A6A9B3] mb-3">
+                        <div className="flex items-center justify-between text-xs text-[#A6A9B3] mb-3 parallax-medium">
                           <span>{(movie.cinemaVotes + movie.notCinemaVotes).toLocaleString()} votes</span>
                           {movie.runtime_minutes && (
                             <span>{Math.floor(movie.runtime_minutes / 60)}h {movie.runtime_minutes % 60}m</span>
                           )}
-                          <span className={`font-medium ${
+                          <span className={`font-medium cinema-title ${
                             isCinema ? 'text-[#00E0FF]' : 'text-[#FFD700]'
                           }`}>
                             #{rank}
@@ -910,15 +971,16 @@ const CommunityPoll: React.FC = () => {
                           <button
                             onClick={() => handleVoteAction(movie.id, 'cinema')}
                             disabled={isSubmittingVerdict || userVerdicts[movie.id] || (showEmailPrompt && showEmailPrompt.movieId === movie.id)}
-                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative ${
+                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative cinema-card-enhanced ${
                               userVerdicts[movie.id] === 'cinema'
-                                ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF]'
-                                : 'bg-[rgba(0,224,255,0.1)] hover:bg-[rgba(0,224,255,0.2)] text-[#00E0FF] focus:ring-[#00E0FF]'
+                                ? 'bg-[#00E0FF] text-[#0B0B10] ring-2 ring-[#00E0FF] cinema-glow'
+                                : 'bg-[rgba(0,224,255,0.1)] hover:bg-[rgba(0,224,255,0.2)] text-[#00E0FF] focus:ring-[#00E0FF] cinema-glow'
                             }`}
+                            onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
                           >
                             {isSubmittingVerdict && verdictFeedback?.movieId === movie.id ? (
                               <div className="flex items-center justify-center">
-                                <div className="w-3 h-3 border border-[#00E0FF] border-t-transparent rounded-full animate-spin mr-2" />
+                                <div className="projector-loading w-3 h-3 mr-2" />
                                 Cinema
                               </div>
                             ) : (
@@ -928,15 +990,16 @@ const CommunityPoll: React.FC = () => {
                           <button
                             onClick={() => handleVoteAction(movie.id, 'not-cinema')}
                             disabled={isSubmittingVerdict || userVerdicts[movie.id] || (showEmailPrompt && showEmailPrompt.movieId === movie.id)}
-                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative ${
+                            className={`flex-1 py-2 px-2 sm:px-3 rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed relative cinema-card-enhanced ${
                               userVerdicts[movie.id] === 'not-cinema'
-                                ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700]'
-                                : 'bg-[rgba(255,215,0,0.1)] hover:bg-[rgba(255,215,0,0.2)] text-[#FFD700] focus:ring-[#FFD700]'
+                                ? 'bg-[#FFD700] text-[#0B0B10] ring-2 ring-[#FFD700] not-cinema-matte'
+                                : 'bg-[rgba(255,215,0,0.1)] hover:bg-[rgba(255,215,0,0.2)] text-[#FFD700] focus:ring-[#FFD700] not-cinema-matte'
                             }`}
+                            onMouseDown={(e) => createParticleEffect(e, e.currentTarget)}
                           >
                             {isSubmittingVerdict && verdictFeedback?.movieId === movie.id ? (
                               <div className="flex items-center justify-center">
-                                <div className="w-3 h-3 border border-[#FFD700] border-t-transparent rounded-full animate-spin mr-2" />
+                                <div className="projector-loading w-3 h-3 mr-2 border-[#FFD700]" />
                                 Not Cinema
                               </div>
                             ) : (
@@ -948,7 +1011,7 @@ const CommunityPoll: React.FC = () => {
                         {/* Individual movie verdict feedback */}
                         {verdictFeedback && verdictFeedback.movieId === movie.id && (
                           <div className="mt-2 text-center">
-                            <div className="inline-block px-2 py-1 bg-[rgba(0,224,255,0.1)] border border-[rgba(0,224,255,0.3)] rounded text-xs text-[#00E0FF]">
+                            <div className="inline-block px-2 py-1 bg-[rgba(0,224,255,0.1)] border border-[rgba(0,224,255,0.3)] rounded text-xs text-[#00E0FF] cinema-glow">
                               {verdictFeedback.message}
                             </div>
                           </div>

@@ -80,6 +80,27 @@
           min-width: 44px;
         }
       }
+      
+      /* Reduced motion preferences */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+        
+        .parallax-slow, .parallax-medium, .parallax-fast {
+          animation: none !important;
+        }
+        
+        .film-grain::before {
+          animation: none !important;
+        }
+        
+        .sprocket-holes {
+          animation: none !important;
+        }
+      }
     </style>
   </head>
   <body>
