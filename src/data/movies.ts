@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { EnhancedMovie, transformDbRowToEnhancedMovie } from '../utils/movieSeeder';
+import { EnhancedMovie, transformDbRowToEnhancedMovie } from '../utils/movieSeeder';
 
 // Re-export the enhanced movie interface
 export type Movie = EnhancedMovie;
